@@ -25,6 +25,14 @@ interface CardStatus {
   nextCheckAt: string | null
 }
 
+/**
+ * LabCard component - Displays a single lab tool card with status monitoring
+ * Features:
+ * - Real-time status monitoring with automatic polling
+ * - Click handling with fallback navigation methods
+ * - Cyberpunk-themed styling with glow effects
+ * - Status staleness detection and visual feedback
+ */
 export function LabCard({ id, title, description, url, iconPath, order }: LabCardProps) {
   const [status, setStatus] = useState<CardStatus>({
     isUp: null,
@@ -39,6 +47,10 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
 
   const [isRefreshing, setIsRefreshing] = useState(false)
 
+  /**
+   * Fetches the current status for this lab tool card
+   * Updates the status state and handles errors gracefully
+   */
   const fetchStatus = async () => {
     try {
       setIsRefreshing(true)
@@ -59,7 +71,7 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
   // Initial status fetch
   useEffect(() => {
     fetchStatus()
-  }, []) // Empty dependency array - only run on mount
+  }, [id]) // Run when id changes
 
   // Polling every 30 seconds
   useEffect(() => {
@@ -67,8 +79,16 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     return () => {
       clearInterval(interval)
     }
-  }, []) // Empty dependency array - only run on mount
+  }, [id]) // Run when id changes
 
+  /**
+   * Handles card click events with intelligent URL handling
+   * Features:
+   * - URL validation and formatting
+   * - Popup blocking detection with fallbacks
+   * - User-friendly error messages
+   * - Support for relative and absolute URLs
+   */
   const handleCardClick = () => {
     if (url && url.trim() !== '') {
       try {
@@ -108,18 +128,31 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     }
   }
 
+  /**
+   * Formats latency values for display
+   * @param latencyMs - Latency in milliseconds
+   * @returns Formatted string (e.g., "150ms" or "2.5s")
+   */
   const formatLatency = (latencyMs: number | null) => {
     if (latencyMs === null) return null
     if (latencyMs < 1000) return `${latencyMs}ms`
     return `${(latencyMs / 1000).toFixed(1)}s`
   }
 
+  /**
+   * Formats the last checked timestamp for display
+   * @param lastChecked - ISO timestamp string
+   * @returns Formatted time string or "Never" if null
+   */
   const formatLastChecked = (lastChecked: string | null) => {
     if (lastChecked === null) return 'Never'
     return new Date(lastChecked).toLocaleTimeString()
   }
 
-  // Determine if status is stale (older than 120 seconds)
+  /**
+   * Determines if the status data is stale (older than 2 minutes)
+   * @returns true if status is stale, false if fresh
+   */
   const isStatusStale = () => {
     if (!status.lastChecked) return true
     
@@ -132,8 +165,6 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
       
       const timeDiff = Date.now() - lastCheckedTime
       const isStale = timeDiff > 120000 // 2 minutes
-      
-
       
       return isStale
     } catch (error) {

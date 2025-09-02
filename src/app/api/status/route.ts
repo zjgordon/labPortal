@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // Check if we should return cached status
     if (card.status) {
       // If nextCheckAt is set and we haven't reached it yet, return cached
-      if (card.status.nextCheckAt && now < card.status.nextCheckAt) {
+      if (card.status.nextCheckAt && now < new Date(card.status.nextCheckAt)) {
         return NextResponse.json({
           isUp: card.status.isUp,
           lastChecked: card.status.lastChecked,
@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
       // If lastChecked is less than 30 seconds ago, return cached
       if (card.status.lastChecked) {
         const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000)
-        if (card.status.lastChecked > thirtySecondsAgo) {
+        const lastCheckedDate = new Date(card.status.lastChecked)
+        if (lastCheckedDate > thirtySecondsAgo) {
           return NextResponse.json({
             isUp: card.status.isUp,
             lastChecked: card.status.lastChecked,

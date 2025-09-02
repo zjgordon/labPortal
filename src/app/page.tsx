@@ -2,13 +2,16 @@
 
 import { Suspense, useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card as UICard, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LabCard } from '@/components/lab-card'
 import { Input } from '@/components/ui/input'
 import { ExternalLink, Plus, Server, Search } from 'lucide-react'
 import Link from 'next/link'
 
-// Client-side time display component to avoid hydration errors
+/**
+ * Client-side time display component to avoid hydration errors
+ * Renders time only after component mounts to prevent server/client mismatch
+ */
 function TimeDisplay() {
   const [time, setTime] = useState('')
 
@@ -17,19 +20,20 @@ function TimeDisplay() {
       setTime(new Date().toLocaleTimeString())
     }
     
-    // Update immediately
+    // Update immediately on mount
     updateTime()
     
-    // Update every second
+    // Update every second for live clock effect
     const interval = setInterval(updateTime, 1000)
     
+    // Cleanup interval on unmount
     return () => clearInterval(interval)
   }, [])
 
   return <span>{time}</span>
 }
 
-interface Card {
+interface LabCardData {
   id: string
   title: string
   description: string
@@ -40,9 +44,17 @@ interface Card {
   group: string
 }
 
+/**
+ * LabCardsGrid component - Displays lab tools organized by category with search functionality
+ * Features:
+ * - Real-time search across titles, descriptions, and categories
+ * - Automatic grouping by tool category
+ * - Loading states and error handling
+ * - Responsive grid layout
+ */
 function LabCardsGrid() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [cards, setCards] = useState<Card[]>([])
+  const [cards, setCards] = useState<LabCardData[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Fetch cards on component mount
@@ -50,10 +62,16 @@ function LabCardsGrid() {
     const fetchCards = async () => {
       try {
         const response = await fetch('/api/cards', { cache: 'no-store' })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
         const data = await response.json()
         setCards(data)
       } catch (error) {
         console.error('Failed to fetch cards:', error)
+        // Could add error state here for better UX
       } finally {
         setIsLoading(false)
       }
@@ -80,7 +98,7 @@ function LabCardsGrid() {
       }
       acc[card.group].push(card)
       return acc
-    }, {} as Record<string, Card[]>)
+    }, {} as Record<string, LabCardData[]>)
 
     // Sort groups alphabetically and sort cards within each group by order
     Object.keys(grouped).forEach(group => {
@@ -94,7 +112,7 @@ function LabCardsGrid() {
     return (
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {[...Array(6)].map((_, i) => (
-          <Card key={i} className="animate-pulse h-full bg-slate-800 border-slate-700">
+          <UICard key={i} className="animate-pulse h-full bg-slate-800 border-slate-700">
             <CardHeader className="pb-4 text-center">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-slate-700 rounded-lg" />
@@ -108,7 +126,7 @@ function LabCardsGrid() {
                 <div className="h-4 bg-slate-700 rounded w-1/2 mx-auto" />
               </div>
             </CardContent>
-          </Card>
+          </UICard>
         ))}
       </div>
     )
@@ -185,7 +203,7 @@ function LabCardsGrid() {
           <Search className="w-16 h-16 text-slate-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-300 mb-2">No Results Found</h3>
           <p className="text-slate-500 mb-6 max-w-md mx-auto">
-            No lab tools match your search for "{searchQuery}". Try adjusting your search terms.
+            No lab tools match your search for &quot;{searchQuery}&quot;. Try adjusting your search terms.
           </p>
           <Button 
             variant="outline" 
@@ -200,6 +218,14 @@ function LabCardsGrid() {
   )
 }
 
+/**
+ * HomePage - Main portal interface for lab tools
+ * Features:
+ * - Cyberpunk-themed header with live system time
+ * - Lab tools organized by category with search
+ * - Responsive design with proper loading states
+ * - Admin access button for configuration
+ */
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
@@ -260,7 +286,7 @@ export default function HomePage() {
           <Suspense fallback={
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse h-full bg-slate-800 border-slate-700">
+                <UICard key={i} className="animate-pulse h-full bg-slate-800 border-slate-700">
                   <CardHeader className="pb-4 text-center">
                     {/* Centered Icon */}
                     <div className="flex justify-center mb-4">
@@ -276,7 +302,7 @@ export default function HomePage() {
                       <div className="h-4 bg-slate-700 rounded w-1/2 mx-auto" />
                     </div>
                   </CardContent>
-                </Card>
+                </UICard>
               ))}
             </div>
           }>

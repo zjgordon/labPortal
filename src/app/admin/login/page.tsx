@@ -7,12 +7,25 @@ import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+/**
+ * AdminLoginPage - Authentication interface for portal administration
+ * Features:
+ * - Password-based authentication
+ * - Local storage session management
+ * - Error handling and user feedback
+ * - Navigation back to main portal
+ */
 export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
 
+  /**
+   * Handles admin login form submission
+   * Authenticates user and sets session data in localStorage
+   * @param e - Form submission event
+   */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
