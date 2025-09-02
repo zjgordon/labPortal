@@ -27,6 +27,8 @@ async function LabCardsGrid() {
     )
   }
 
+
+
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {cards.map((card) => (
@@ -64,9 +66,9 @@ export default function HomePage() {
             <h2 className="text-4xl font-bold text-slate-100 tracking-tight">
               Lab Tools
             </h2>
-            <div className="text-sm text-slate-400 bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
-              Click any card to access tools
-            </div>
+                    <div className="text-sm text-slate-400 bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
+          Click any card to access tools (opens in new tab)
+        </div>
           </div>
           
           <Suspense fallback={

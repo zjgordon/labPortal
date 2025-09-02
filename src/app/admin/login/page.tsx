@@ -16,22 +16,23 @@ export default function AdminLoginPage() {
     setIsLoading(true)
     setError('')
 
-    // Simple password check
-    if (password === 'admin123') {
-      try {
-        // Set authentication in localStorage
-        localStorage.setItem('admin-authenticated', 'true')
-        localStorage.setItem('admin-login-time', Date.now().toString())
-        
+    try {
+      // Use NextAuth for proper authentication
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'admin@local', password }),
+      })
+
+      if (response.ok) {
         // Redirect to admin dashboard
         window.location.href = '/admin'
-        
-      } catch (error) {
-        setError('An error occurred during login. Please try again.')
+      } else {
+        setError('Incorrect password. Please try again.')
+        setPassword('')
       }
-    } else {
-      setError('Incorrect password. Please try again.')
-      setPassword('')
+    } catch (error) {
+      setError('An error occurred during login. Please try again.')
     }
     
     setIsLoading(false)

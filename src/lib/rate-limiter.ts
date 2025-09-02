@@ -2,6 +2,12 @@
  * Simple in-memory rate limiter
  * Note: This is a best-effort limiter for development/prototyping
  * For production, consider using Redis or a dedicated rate limiting service
+ * 
+ * Features:
+ * - Configurable time windows and request limits
+ * - Automatic cleanup of expired entries
+ * - IP-based rate limiting
+ * - Remaining time calculation
  */
 
 interface RateLimitConfig {

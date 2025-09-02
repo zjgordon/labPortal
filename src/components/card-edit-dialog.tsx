@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
+import Image from 'next/image'
 
 export interface CardEditDialogProps {
   open: boolean
@@ -239,10 +240,12 @@ export function CardEditDialog({
               <div className="flex items-center gap-3">
                 {uploadedIconPath ? (
                   <div className="relative">
-                    <img
+                    <Image
                       src={uploadedIconPath}
                       alt="Card icon"
-                      className="w-12 h-12 object-contain border rounded"
+                      width={48}
+                      height={48}
+                      className="object-contain border rounded"
                     />
                     <Button
                       type="button"

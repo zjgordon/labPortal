@@ -26,8 +26,14 @@ export async function GET() {
 // POST /api/cards - Create new card (protected)
 export async function POST(request: NextRequest) {
   try {
-    // Simple authentication check - allow all requests for now
-    // In production, you might want to add a simple API key or token check
+    // Basic authentication check - in production, implement proper JWT or session validation
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     
     const body = await request.json()
     const validatedData = createCardSchema.parse(body)

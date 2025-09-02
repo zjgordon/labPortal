@@ -2,11 +2,12 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { CardEditDialog } from '@/components/card-edit-dialog'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Plus, Edit, Trash2, GripVertical, Eye, EyeOff, ExternalLink, Monitor } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import Image from 'next/image'
 
 interface AdminCard {
   id: string
@@ -28,12 +29,25 @@ export default function AdminPage() {
   const [showCardManager, setShowCardManager] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    // Check authentication on component mount
-    checkAuth()
-  }, [])
+  const fetchCards = useCallback(async () => {
+    try {
+      const response = await fetch('/api/cards/all')
+      if (response.ok) {
+        const data = await response.json()
+        setCards(data.sort((a: AdminCard, b: AdminCard) => a.order - b.order))
+      } else {
+        throw new Error('Failed to fetch cards')
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch cards. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }, [toast])
 
-  const checkAuth = () => {
+  const checkAuth = useCallback(() => {
     const authFlag = localStorage.getItem('admin-authenticated')
     const loginTime = localStorage.getItem('admin-login-time')
     
@@ -56,25 +70,12 @@ export default function AdminPage() {
     }
     
     setIsLoading(false)
-  }
+  }, [fetchCards])
 
-  const fetchCards = async () => {
-    try {
-      const response = await fetch('/api/cards/all')
-      if (response.ok) {
-        const data = await response.json()
-        setCards(data.sort((a: AdminCard, b: AdminCard) => a.order - b.order))
-      } else {
-        throw new Error('Failed to fetch cards')
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch cards. Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
+  useEffect(() => {
+    // Check authentication on component mount
+    checkAuth()
+  }, [checkAuth])
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return
@@ -314,10 +315,12 @@ export default function AdminPage() {
                             {/* Card Icon */}
                             <div className="w-12 h-12 bg-slate-700 rounded-lg flex items-center justify-center">
                               {card.iconPath ? (
-                                <img 
+                                <Image 
                                   src={card.iconPath} 
                                   alt={`${card.title} icon`}
-                                  className="w-8 h-8 object-contain"
+                                  width={32}
+                                  height={32}
+                                  className="object-contain"
                                 />
                               ) : (
                                 <Monitor className="w-6 h-6 text-slate-400" />
@@ -442,7 +445,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-slate-400 mb-6">
-                Customize the portal's look, title, and other settings.
+                Customize the portal&apos;s look, title, and other settings.
               </p>
               <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0">
                 Configure Portal
