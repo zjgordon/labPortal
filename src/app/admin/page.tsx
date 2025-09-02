@@ -7,6 +7,7 @@ import { CardEditDialog } from '@/components/card-edit-dialog'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Plus, Edit, Trash2, GripVertical, Eye, EyeOff, ExternalLink, Monitor } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
 interface AdminCard {
@@ -28,6 +29,7 @@ export default function AdminPage() {
   const [isNewCard, setIsNewCard] = useState(false)
   const [showCardManager, setShowCardManager] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const fetchCards = useCallback(async () => {
     try {
@@ -47,35 +49,50 @@ export default function AdminPage() {
     }
   }, [toast])
 
-  const checkAuth = useCallback(() => {
+    const checkAuth = useCallback(() => {
+    console.log('=== checkAuth function called ===')
+    
     const authFlag = localStorage.getItem('admin-authenticated')
     const loginTime = localStorage.getItem('admin-login-time')
+    
+    console.log('Auth check - authFlag:', authFlag, 'loginTime:', loginTime)
     
     if (authFlag === 'true' && loginTime) {
       const loginTimestamp = parseInt(loginTime)
       const now = Date.now()
       const hoursSinceLogin = (now - loginTimestamp) / (1000 * 60 * 60)
       
+      console.log('Hours since login:', hoursSinceLogin)
+      
       // Check if login is within last 24 hours
       if (hoursSinceLogin < 24) {
+        console.log('Authentication successful, setting authenticated to true')
         setIsAuthenticated(true)
         fetchCards()
       } else {
+        console.log('Login expired, redirecting to login')
         localStorage.removeItem('admin-authenticated')
         localStorage.removeItem('admin-login-time')
-        window.location.href = '/admin/login'
+        router.push('/admin/login')
       }
     } else {
-      window.location.href = '/admin/login'
+      console.log('No valid auth found, redirecting to login')
+      router.push('/admin/login')
     }
     
     setIsLoading(false)
-  }, [fetchCards])
+  }, [fetchCards, router])
 
   useEffect(() => {
     // Check authentication on component mount
-    checkAuth()
-  }, [checkAuth])
+    // Add a small delay to ensure localStorage is available after redirect
+    const timer = setTimeout(() => {
+      checkAuth()
+    }, 200)
+    
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return
@@ -239,7 +256,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     localStorage.removeItem('admin-authenticated')
     localStorage.removeItem('admin-login-time')
-    window.location.href = '/admin/login'
+    router.push('/admin/login')
   }
 
   if (isLoading) {

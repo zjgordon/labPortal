@@ -5,16 +5,27 @@ import { cn } from "@/lib/utils"
 export interface StatusIndicatorProps {
   isUp: boolean | null
   isRefreshing?: boolean
+  error?: string | null
   className?: string
 }
 
-export function StatusIndicator({ isUp, isRefreshing = false, className }: StatusIndicatorProps) {
+export function StatusIndicator({ isUp, isRefreshing = false, error = null, className }: StatusIndicatorProps) {
   const getStatusInfo = () => {
+    if (error) {
+      return {
+        color: "bg-red-500",
+        text: "Error",
+        pulse: false,
+        textColor: "text-red-400"
+      }
+    }
+    
     if (isRefreshing) {
       return {
         color: "bg-yellow-500",
-        text: "Checking...",
-        pulse: true
+        text: "Loading",
+        pulse: true,
+        textColor: "text-yellow-400"
       }
     }
     
@@ -22,7 +33,8 @@ export function StatusIndicator({ isUp, isRefreshing = false, className }: Statu
       return {
         color: "bg-gray-500",
         text: "Unknown",
-        pulse: false
+        pulse: false,
+        textColor: "text-gray-400"
       }
     }
     
@@ -30,14 +42,16 @@ export function StatusIndicator({ isUp, isRefreshing = false, className }: Statu
       return {
         color: "bg-green-500",
         text: "Up",
-        pulse: false
+        pulse: false,
+        textColor: "text-green-400"
       }
     }
     
     return {
       color: "bg-red-500",
       text: "Down",
-      pulse: false
+      pulse: false,
+      textColor: "text-red-400"
     }
   }
 
@@ -51,9 +65,9 @@ export function StatusIndicator({ isUp, isRefreshing = false, className }: Statu
           statusInfo.color,
           statusInfo.pulse && "animate-pulse"
         )}
-        title={statusInfo.text}
+        title={error ? `Error: ${error}` : statusInfo.text}
       />
-      <span className="text-xs text-muted-foreground font-medium">
+      <span className={cn("text-xs font-medium", statusInfo.textColor)}>
         {statusInfo.text}
       </span>
     </div>

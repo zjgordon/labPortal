@@ -37,25 +37,33 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
       const response = await fetch(`/api/status?cardId=${id}`)
       if (response.ok) {
         const data = await response.json()
+        console.log(`Status update for ${title}:`, data)
         setStatus(data)
+      } else {
+        console.error(`Status check failed for card ${id}:`, response.status)
       }
     } catch (error) {
       console.error(`Failed to fetch status for card ${id}:`, error)
     } finally {
       setIsRefreshing(false)
     }
-  }, [id])
+  }, [id, title])
 
   // Initial status fetch
   useEffect(() => {
+    console.log(`Initial status fetch for card: ${title}`)
     fetchStatus()
-  }, [fetchStatus])
+  }, [id, title])
 
   // Polling every 30 seconds
   useEffect(() => {
+    console.log(`Setting up polling for card: ${title}`)
     const interval = setInterval(fetchStatus, 30000)
-    return () => clearInterval(interval)
-  }, [fetchStatus])
+    return () => {
+      console.log(`Cleaning up polling for card: ${title}`)
+      clearInterval(interval)
+    }
+  }, [id, title])
 
   const handleCardClick = () => {
     if (url && url.trim() !== '') {
@@ -100,6 +108,11 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     if (latencyMs === null) return null
     if (latencyMs < 1000) return `${latencyMs}ms`
     return `${(latencyMs / 1000).toFixed(1)}s`
+  }
+
+  const formatLastChecked = (lastChecked: string | null) => {
+    if (lastChecked === null) return 'Never'
+    return new Date(lastChecked).toLocaleTimeString()
   }
 
     return (
@@ -170,7 +183,7 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
             
             {status.lastChecked && (
               <div className="text-xs text-slate-500 bg-slate-700/30 px-3 py-2 rounded-md">
-                Last checked: {new Date(status.lastChecked).toLocaleTimeString()}
+                Last checked: {formatLastChecked(status.lastChecked)}
               </div>
             )}
           </div>

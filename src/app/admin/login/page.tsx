@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,8 +27,15 @@ export default function AdminLoginPage() {
       })
 
       if (response.ok) {
-        // Redirect to admin dashboard
-        window.location.href = '/admin'
+        console.log('Login successful, setting localStorage values')
+        
+        // Set localStorage values for admin authentication
+        localStorage.setItem('admin-authenticated', 'true')
+        localStorage.setItem('admin-login-time', Date.now().toString())
+        
+        console.log('localStorage values set, redirecting to admin dashboard...')
+        // Use Next.js router for navigation
+        router.push('/admin')
       } else {
         setError('Incorrect password. Please try again.')
         setPassword('')
