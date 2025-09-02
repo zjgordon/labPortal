@@ -288,11 +288,11 @@ export default function AdminPage() {
               <Button 
                 onClick={() => setShowCardManager(false)} 
                 variant="outline" 
-                className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+                className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]"
               >
                 Back to Config
               </Button>
-              <Button onClick={handleLogout} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-slate-100">
+              <Button onClick={handleLogout} variant="outline" className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]">
                 Logout
               </Button>
             </div>
@@ -300,7 +300,7 @@ export default function AdminPage() {
 
           {/* Add New Card Button */}
           <div className="mb-6">
-            <Button onClick={handleCreateCard} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Button onClick={handleCreateCard} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)] transition-all duration-200">
               <Plus className="w-4 h-4 mr-2" />
               Add New Card
             </Button>
@@ -426,7 +426,7 @@ export default function AdminPage() {
             <p className="text-xl text-slate-400 mb-2">Configure and manage your lab portal</p>
             <p className="text-sm text-slate-500">Simple password-based access</p>
           </div>
-          <Button onClick={handleLogout} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-slate-100">
+          <Button onClick={handleLogout} variant="outline" className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]">
             Logout
           </Button>
         </div>
@@ -446,7 +446,7 @@ export default function AdminPage() {
               </p>
               <Button 
                 onClick={() => setShowCardManager(true)} 
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)] transition-all duration-200"
               >
                 Manage Lab Tools
               </Button>
@@ -464,7 +464,7 @@ export default function AdminPage() {
               <p className="text-sm text-slate-400 mb-6">
                 Customize the portal&apos;s look, title, and other settings.
               </p>
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0">
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)] transition-all duration-200">
                 Configure Portal
               </Button>
             </CardContent>

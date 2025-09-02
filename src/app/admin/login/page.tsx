@@ -48,28 +48,28 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
+          <h1 className="text-3xl font-bold text-slate-100 mb-2">
             Admin Access
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-slate-400">
             Enter the admin password to configure the portal
           </p>
         </div>
 
-        <Card>
+        <Card className="bg-slate-800 border-slate-700 text-slate-100">
           <CardHeader>
-            <CardTitle>Portal Configuration</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-slate-100">Portal Configuration</CardTitle>
+            <CardDescription className="text-slate-400">
               Enter your admin password to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Admin Password</Label>
+                <Label htmlFor="password" className="text-slate-300">Admin Password</Label>
                 <Input 
                   id="password" 
                   type="password" 
@@ -78,16 +78,17 @@ export default function AdminLoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoFocus
+                  className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:ring-emerald-400/20"
                 />
               </div>
               
               {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-3 rounded border">
+                <div className="text-sm text-red-400 bg-red-500/10 p-3 rounded border border-red-500/20">
                   {error}
                 </div>
               )}
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)] transition-all duration-200" disabled={isLoading}>
                 {isLoading ? "Checking..." : "Access Configuration"}
               </Button>
             </form>

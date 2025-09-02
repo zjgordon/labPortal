@@ -47,22 +47,57 @@ async function LabCardsGrid() {
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
-      <div className="container mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-slate-100 mb-6 tracking-tight">
-            Lab Portal
-          </h1>
-          <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-8 leading-relaxed">
-            Portal and control plane for local network laboratories
-          </p>
-        </div>
+      {/* New Cyberpunk Header */}
+      <header className="border-b border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left: Logo & Title */}
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-lg flex items-center justify-center">
+                  <div className="w-6 h-6 bg-slate-900 rounded-sm"></div>
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
+                  LAB<span className="text-emerald-400">PORTAL</span>
+                </h1>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Control Plane v1.0</p>
+              </div>
+            </div>
 
+            {/* Right: System Status */}
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-3 text-xs">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <span className="text-slate-400">SYSTEM</span>
+                </div>
+                <div className="text-slate-600">|</div>
+                <div className="text-slate-400">
+                  {new Date().toLocaleTimeString()}
+                </div>
+              </div>
+              <Link href="/admin/login">
+                <Button variant="outline" size="sm" className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 text-xs px-3 py-1 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]">
+                  ADMIN
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-6 py-8">
         {/* Lab Tools Grid */}
         <div className="mb-16">
           <div className="mb-10">
-            <h2 className="text-4xl font-bold text-slate-100 tracking-tight">
-              Lab Tools
+            <h2 className="text-3xl font-bold text-slate-100 tracking-tight flex items-center">
+              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                LAB TOOLS
+              </span>
+              <div className="ml-3 w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
             </h2>
           </div>
           
@@ -93,32 +128,7 @@ export default function HomePage() {
           </Suspense>
         </div>
 
-        {/* Footer with Status Info */}
-        <div className="border-t border-slate-700 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            {/* Admin Panel Button - Left of Status Widget */}
-            <Link href="/admin/login">
-              <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-slate-100">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Admin
-              </Button>
-            </Link>
-            
-            {/* Status Info - Bottom Right */}
-            <div className="text-xs text-slate-500 bg-slate-800/50 px-4 py-3 rounded-lg border border-slate-700/50 backdrop-blur-sm">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                  <span>System Live</span>
-                </div>
-                <div className="text-slate-600">•</div>
-                <div>
-                  Last: {new Date().toLocaleTimeString()}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   )

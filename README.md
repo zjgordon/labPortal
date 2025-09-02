@@ -1,370 +1,223 @@
 # Lab Portal
 
-A Next.js 14 application with App Router, TypeScript, Tailwind CSS, shadcn/ui components, Prisma ORM, and NextAuth authentication.
+A modern, cyberpunk-styled laboratory control panel built with Next.js 14, featuring real-time service monitoring, drag-and-drop card management, and a sleek dark theme perfect for network laboratories.
 
-## Features
+![Lab Portal](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0-38B2AC?style=for-the-badge&logo=tailwind-css)
+![Prisma](https://img.shields.io/badge/Prisma-5.0-2D3748?style=for-the-badge&logo=prisma)
 
-- **Next.js 14** with App Router
-- **TypeScript** for type safety
-- **Tailwind CSS** for styling
-- **shadcn/ui** components (Button, Card, Input, Label, Dialog, Form, Toast)
-- **Prisma ORM** with SQLite database
-- **NextAuth.js** with Credentials provider
-- **Docker** support
-- **Environment variables** support
+## ✨ Features
 
-## Prerequisites
+### 🎯 Core Functionality
+- **Real-time Service Monitoring** - Live status indicators for all lab tools
+- **Dynamic Card Management** - Add, edit, and organize lab tool cards
+- **Drag & Drop Interface** - Intuitive card reordering with instant persistence
+- **Icon Management** - Upload and manage custom icons for each tool
+- **Responsive Design** - Works perfectly on desktop, tablet, and mobile
 
+### 🎨 Cyberpunk Aesthetic
+- **Dark Theme** - Professional dark slate backgrounds
+- **Neon Accents** - Emerald and cyan highlights with glowing effects
+- **Smooth Animations** - Hover effects, transitions, and pulsing indicators
+- **Modern UI** - Clean, space-efficient design inspired by Grafana dashboards
+
+### 🔒 Security & Authentication
+- **Admin Panel** - Password-protected configuration interface
+- **Session Management** - Secure authentication with NextAuth.js
+- **Input Validation** - Comprehensive validation and sanitization
+- **Rate Limiting** - Protection against abuse and overload
+
+## 🚀 Quick Start
+
+### Prerequisites
 - Node.js 18+ 
 - npm or yarn
-- Docker (optional)
+- Docker (optional, for containerized deployment)
 
-## Setup
-
-### Quick Setup (Recommended)
-
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd labPortal
-   ```
-
-2. **Run the setup script**
-   ```bash
-   chmod +x setup.sh
-   ./setup.sh
-   ```
-
-3. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-4. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
-### Manual Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd labPortal
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   Create a `.env.local` file in the root directory:
-   ```env
-   # Database
-   DATABASE_URL="file:./dev.db"
-   
-   # NextAuth
-   NEXTAUTH_URL="http://localhost:3000"
-   NEXTAUTH_SECRET="your-secret-key-here-change-in-production"
-   
-   # Generate a secret key with: openssl rand -base64 32
-   ```
-
-4. **Set up the database**
-   ```bash
-   # Generate Prisma client
-   npm run prisma:generate
-   
-   # Run database migrations
-   npm run prisma:migrate
-   
-   # Seed the database with initial data
-   npm run prisma:seed
-   ```
-
-5. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-6. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
-## Available Scripts
-
-### Development Commands
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-
-### Database Commands
-
-- `npm run prisma:generate` - Generate Prisma client
-- `npm run prisma:migrate` - Run database migrations
-- `npm run prisma:seed` - Seed database with initial data
-- `npm run prisma:studio` - Open Prisma Studio
-
-### Docker Commands
-
-- `docker-compose up --build` - Start development environment
-- `docker-compose -f docker-compose.prod.yaml up -d` - Start production environment
-- `docker build -f Dockerfile.prod -t lab-portal .` - Build production image
-
-### Database Seeding
-
-After setting up the database, seed it with initial data:
-
+### 1. Clone & Setup
 ```bash
-# Generate Prisma client first
+git clone <your-repo-url>
+cd labPortal
+chmod +x setup.sh
+./setup.sh
+```
+
+### 2. Start Development Server
+```bash
+npm run dev
+```
+
+### 3. Open Your Browser
+Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 🛠️ Manual Setup
+
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Environment Configuration
+Create a `.env.local` file:
+```env
+# Database
+DATABASE_URL="file:./dev.db"
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key-here"
+
+# Admin Access
+ADMIN_PASSWORD="your-admin-password"
+```
+
+### 3. Database Setup
+```bash
 npm run prisma:generate
-
-# Run migrations
 npm run prisma:migrate
-
-# Seed with example lab tools
 npm run prisma:seed
 ```
 
-The seed script creates:
-- 3 example lab tool cards (Router, NAS, Git)
-- Associated status records
-- Admin user setup
-
-## Database
-
-The application uses SQLite with Prisma ORM. The database file (`dev.db`) will be created automatically when you run the first migration.
-
-### Default User
-After seeding the database, you can log in with:
-- Email: `demo@example.com`
-- Password: `password`
-
-## Environment Variables
-
-### Required Variables
-
-Create a `.env.local` file for development or `.env` for production:
-
-```env
-# Database Configuration
-DATABASE_URL="file:./dev.db"                    # SQLite for dev
-# DATABASE_URL="postgresql://user:pass@localhost:5432/labportal"  # PostgreSQL for prod
-
-# NextAuth Configuration
-NEXTAUTH_URL="http://localhost:3000"            # Your domain in production
-NEXTAUTH_SECRET="your-secret-key-here"          # Generate with: openssl rand -base64 32
-
-# Admin Authentication
-ADMIN_PASSWORD="admin123"                        # Set strong password in production
+### 4. Start Development
+```bash
+npm run dev
 ```
 
-### Optional Variables
+## 📱 Usage
 
-```env
-# Production Settings
-NODE_ENV="production"
-PORT="3000"
-HOSTNAME="0.0.0.0"
+### Main Portal
+- **View Lab Tools** - See all available services with real-time status
+- **Quick Access** - Click any card to open the service in a new tab
+- **Status Monitoring** - Live indicators show if services are up/down
 
-# Rate Limiting
-STATUS_RATE_LIMIT="30"                           # Requests per minute for status API
-AUTH_RATE_LIMIT="5"                              # Login attempts per 15 minutes
-```
+### Admin Panel
+- **Access**: Navigate to `/admin/login` and enter your admin password
+- **Manage Cards**: Add, edit, delete, and reorder lab tool cards
+- **Upload Icons**: Customize each tool with unique icons
+- **Enable/Disable**: Control which tools are visible to users
 
-## Docker
+## 🎨 Customization
 
-### Development (SQLite)
+### Adding New Lab Tools
+1. Log into the admin panel
+2. Click "Manage Lab Tools"
+3. Click "Add New Card"
+4. Fill in:
+   - **Title**: Display name for the tool
+   - **Description**: Brief description of the tool
+   - **URL**: Service endpoint (http://, https://, or relative paths)
+   - **Icon**: Upload a custom icon (PNG/JPG, max 2MB)
 
+### Styling
+The application uses Tailwind CSS with a custom cyberpunk theme:
+- **Primary Colors**: Emerald (`emerald-400`) and Cyan (`cyan-400`)
+- **Backgrounds**: Dark slate (`slate-900`, `slate-800`)
+- **Accents**: Neon glows and pulsing indicators
+- **Responsive**: Mobile-first design with breakpoint optimizations
+
+## 🐳 Docker Deployment
+
+### Development
 ```bash
 docker-compose up --build
 ```
 
-### Production Deployment
+### Production
+```bash
+# Build production image
+docker build -f Dockerfile.prod -t lab-portal .
 
-#### Using Production Dockerfile
-
-1. **Build the production image:**
-   ```bash
-   docker build -f Dockerfile.prod -t lab-portal .
-   ```
-
-2. **Run with environment variables:**
-   ```bash
-   docker run -d \
-     --name lab-portal \
-     -p 3000:3000 \
-     -e DATABASE_URL="your-database-url" \
-     -e NEXTAUTH_SECRET="your-secret" \
-     -e ADMIN_PASSWORD="your-admin-password" \
-     -e NEXTAUTH_URL="http://your-domain.com" \
-     -v ./uploads:/app/public/uploads \
-     lab-portal
-   ```
-
-#### Using Production Docker Compose
-
-1. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your production values
-   ```
-
-2. **Start the service:**
-   ```bash
-   docker-compose -f docker-compose.prod.yaml up -d
-   ```
-
-### Production Considerations
-
-- **Database**: Use PostgreSQL or MySQL for production
-- **File Storage**: Mount `./uploads` volume for persistent icon storage
-- **Reverse Proxy**: Configure Nginx/Apache for SSL termination
-- **Environment**: Set `NODE_ENV=production` for optimizations
-
-## Reverse Proxy Configuration
-
-### Nginx Example
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name your-domain.com;
-    
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-    
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-    
-    # Serve uploaded icons directly
-    location /uploads/ {
-        alias /path/to/your/uploads/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
+# Run with environment variables
+docker run -d \
+  --name lab-portal \
+  -p 3000:3000 \
+  -e DATABASE_URL="your-database-url" \
+  -e NEXTAUTH_SECRET="your-secret" \
+  -e ADMIN_PASSWORD="your-admin-password" \
+  -e NEXTAUTH_URL="http://your-domain.com" \
+  -v ./uploads:/app/public/uploads \
+  lab-portal
 ```
 
-### Apache Example
-
-```apache
-<VirtualHost *:80>
-    ServerName your-domain.com
-    Redirect permanent / https://your-domain.com/
-</VirtualHost>
-
-<VirtualHost *:443>
-    ServerName your-domain.com
-    DocumentRoot /var/www/html
-    
-    SSLEngine on
-    SSLCertificateFile /path/to/cert.pem
-    SSLCertificateKeyFile /path/to/key.pem
-    
-    ProxyPreserveHost On
-    ProxyPass / http://localhost:3000/
-    ProxyPassReverse / http://localhost:3000/
-    
-    # Serve uploaded icons
-    Alias /uploads /path/to/your/uploads
-    <Directory /path/to/your/uploads>
-        Require all granted
-        ExpiresActive On
-        ExpiresDefault "access plus 1 year"
-    </Directory>
-</VirtualHost>
-```
-
-## Icon Storage and File Management
-
-### Storage Paths
-
-- **Development**: Icons stored in `public/uploads/`
-- **Production**: Mount volume to `/app/public/uploads` in container
-- **URL Access**: Icons accessible at `/uploads/filename.png`
-
-### File Validation
-
-- **Supported Formats**: PNG, JPEG, JPG
-- **Size Limit**: 2MB maximum
-- **Storage**: Persistent across container restarts
-- **Security**: File type validation and sanitization
-
-### Backup Considerations
-
-- **Database**: Regular backups of your database
-- **Icons**: Backup the `uploads` directory
-- **Environment**: Document all environment variables
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 src/
 ├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   │   └── auth/          # NextAuth routes
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Home page
+│   ├── admin/             # Admin panel routes
+│   ├── api/               # API endpoints
+│   └── page.tsx           # Main portal page
 ├── components/             # React components
-│   └── ui/                # shadcn/ui components
-├── hooks/                  # Custom React hooks
-├── lib/                    # Utility libraries
-│   ├── prisma.ts          # Prisma client
-│   └── utils.ts           # Utility functions
-└── types/                  # TypeScript type definitions
+│   ├── ui/                # shadcn/ui components
+│   ├── lab-card.tsx       # Lab tool card component
+│   └── status-indicator.tsx # Status display component
+├── lib/                    # Utilities and configurations
+└── types/                  # TypeScript definitions
 
 prisma/
 ├── schema.prisma          # Database schema
-└── seed.ts                # Database seed script
+└── seed.ts                # Initial data seeding
 ```
 
-## Authentication
+## 🔧 Available Scripts
 
-The application uses NextAuth.js with a Credentials provider. Users can sign in with email and password. The authentication is configured to work with Prisma and includes:
+- `npm run dev` - Development server
+- `npm run build` - Production build
+- `npm run start` - Production server
+- `npm run prisma:generate` - Generate Prisma client
+- `npm run prisma:migrate` - Run database migrations
+- `npm run prisma:seed` - Seed database with example data
 
-- Session management
-- JWT tokens
-- User accounts and sessions
-- Protected routes (can be implemented as needed)
+## 🌐 API Endpoints
 
-## Styling
+### Public Routes
+- `GET /api/cards` - Get enabled lab tool cards
+- `GET /api/status?cardId=...` - Check service status
 
-The application uses Tailwind CSS with a custom design system that includes:
+### Protected Routes (Admin)
+- `GET /api/cards/all` - Get all cards
+- `POST /api/cards` - Create new card
+- `PUT /api/cards/:id` - Update card
+- `DELETE /api/cards/:id` - Delete card
+- `POST /api/cards/reorder` - Reorder cards
+- `POST /api/cards/:id/icon` - Upload card icon
 
-- CSS variables for theming
-- Dark mode support
-- Responsive design utilities
-- Component-specific styles
+## 🔒 Security Features
 
-## Contributing
+- **Input Validation** - Zod schemas for all inputs
+- **File Upload Security** - Type and size validation
+- **Rate Limiting** - API protection against abuse
+- **Authentication** - Secure admin access
+- **XSS Protection** - Content Security Policy headers
+
+## 📊 Status Monitoring
+
+The portal includes a sophisticated status monitoring system:
+- **Real-time Updates** - Status checked every 30 seconds
+- **Smart Caching** - Efficient API usage with intelligent caching
+- **Error Handling** - Comprehensive error detection and reporting
+- **Latency Measurement** - Response time tracking for each service
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests if applicable
+4. Test thoroughly
 5. Submit a pull request
 
-## License
+## 📄 License
 
 This project is licensed under the ISC License.
 
-## Support
+## 🆘 Support
 
-For support, please open an issue in the GitHub repository.
+For support or questions:
+- Open an issue in the GitHub repository
+- Check the project documentation
+- Review the implementation summaries in the docs folder
+
+---
+
+**Lab Portal** - Your gateway to efficient laboratory management with style. 🚀
