@@ -23,11 +23,21 @@ async function main() {
   const cards = await Promise.all([
     prisma.card.create({
       data: {
+        title: 'Stable Diffusion',
+        description: 'AI image generation service for creating artwork and illustrations',
+        url: 'http://localhost:7860',
+        iconPath: '/icons/ai.svg',
+        order: 1,
+        isEnabled: true,
+      },
+    }),
+    prisma.card.create({
+      data: {
         title: 'Router Dashboard',
         description: 'Main network router configuration and monitoring interface',
         url: 'http://router.local',
         iconPath: '/icons/router.svg',
-        order: 1,
+        order: 2,
         isEnabled: true,
       },
     }),
@@ -37,7 +47,7 @@ async function main() {
         description: 'Network Attached Storage administration panel',
         url: 'http://nas.local:9000',
         iconPath: '/icons/nas.svg',
-        order: 2,
+        order: 3,
         isEnabled: true,
       },
     }),
@@ -47,7 +57,7 @@ async function main() {
         description: 'Self-hosted Git service for code management',
         url: 'http://gitea.local',
         iconPath: '/icons/git.svg',
-        order: 3,
+        order: 4,
         isEnabled: true,
       },
     }),
