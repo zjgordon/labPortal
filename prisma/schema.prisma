@@ -64,6 +64,7 @@ model Card {
   updatedAt   DateTime    @updatedAt
   healthPath  String?
   status      CardStatus?
+  statusEvents StatusEvent[]
 }
 
 model CardStatus {
@@ -77,4 +78,16 @@ model CardStatus {
   failCount   Int       @default(0)
   nextCheckAt DateTime?
   card        Card      @relation(fields: [cardId], references: [id])
+}
+
+model StatusEvent {
+  id        String   @id @default(cuid())
+  cardId    String
+  timestamp DateTime @default(now())
+  isUp      Boolean
+  http      Int?
+  latencyMs Int?
+  message   String?
+  card      Card     @relation(fields: [cardId], references: [id])
+  @@index([cardId, timestamp])
 }

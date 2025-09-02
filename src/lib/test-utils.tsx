@@ -91,3 +91,4 @@ export const mockFetchError = (error: string, status = 500) => {
 // Test constants
 export const TEST_TIMEOUT = 10000
 export const POLLING_INTERVAL = 30000
+

@@ -171,8 +171,11 @@ function LabCardsGrid() {
         <div key={groupName} className="space-y-4">
           {/* Category Header */}
           <div className="flex items-center space-x-3">
-            <h3 className="text-xl font-semibold text-slate-200">
-              {groupName}
+            <h3 className="text-xl font-bold text-slate-100 tracking-tight flex items-center">
+              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                {groupName}
+              </span>
+              <div className="ml-2 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
             </h3>
             <div className="flex-1 h-px bg-slate-700"></div>
             <span className="text-sm text-slate-500 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
@@ -273,16 +276,7 @@ export default function HomePage() {
 
       <div className="container mx-auto px-6 py-8">
         {/* Lab Tools Grid */}
-        <div className="mb-16">
-          <div className="mb-10">
-            <h2 className="text-3xl font-bold text-slate-100 tracking-tight flex items-center">
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                LAB TOOLS
-              </span>
-              <div className="ml-3 w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-            </h2>
-          </div>
-          
+        <div className="mb-8">
           <Suspense fallback={
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {[...Array(6)].map((_, i) => (

@@ -44,7 +44,7 @@ export default async function middleware(req: NextRequest) {
   }
 
   // Create response with headers
-  const response = new NextResponse()
+  const response = NextResponse.next()
   
   // Set security headers
   response.headers.set('Content-Security-Policy', csp)

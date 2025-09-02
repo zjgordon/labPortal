@@ -110,6 +110,17 @@ export async function GET(request: NextRequest) {
         nextCheckAt: newNextCheckAt,
       },
     })
+
+    // Create StatusEvent record for history tracking
+    await prisma.statusEvent.create({
+      data: {
+        cardId: card.id,
+        isUp: probeResult.isUp,
+        http: probeResult.lastHttp,
+        latencyMs: probeResult.latencyMs,
+        message: probeResult.message,
+      }
+    })
     
     // Log the status check result
     console.log(`Status check for card ${card.title} (${card.url}): ${probeResult.isUp ? 'UP' : 'DOWN'} - ${probeResult.latencyMs}ms - ${probeResult.message} - Fail count: ${newFailCount}`)

@@ -101,8 +101,13 @@ async function tryProbeWithMethod(
         // Treat 200-399 as up, anything else as down
         const isUp = response.statusCode >= 200 && response.statusCode < 400
         
+        // Special case: Treat 404 as "up" if response is fast (service is running)
+        // This handles services that don't serve content at the root path
+        const isFastResponse = latencyMs < 1000 // Less than 1 second
+        const isUpWith404 = response.statusCode === 404 && isFastResponse
+        
         resolve({
-          isUp,
+          isUp: isUp || isUpWith404,
           lastHttp: response.statusCode,
           latencyMs,
           message: `HTTP ${response.statusCode}`,

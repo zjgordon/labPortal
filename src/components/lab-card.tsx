@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusIndicator } from "@/components/status-indicator"
+import { Sparkline } from "@/components/sparkline"
 import { ExternalLink, Monitor } from "lucide-react"
 import Image from "next/image"
 
@@ -25,6 +26,15 @@ interface CardStatus {
   nextCheckAt: string | null
 }
 
+interface StatusHistory {
+  events: Array<{
+    timestamp: string
+    isUp: boolean
+    latencyMs?: number | null
+  }>
+  uptimePercentage: number
+}
+
 /**
  * LabCard component - Displays a single lab tool card with status monitoring
  * Features:
@@ -44,8 +54,9 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     nextCheckAt: null,
   })
 
-
+  const [history, setHistory] = useState<StatusHistory | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
 
   /**
    * Fetches the current status for this lab tool card
@@ -68,14 +79,43 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     }
   }
 
-  // Initial status fetch
+  /**
+   * Fetches the status history for this card
+   */
+  const fetchHistory = async () => {
+    try {
+      setIsLoadingHistory(true)
+      const response = await fetch(`/api/status/history?cardId=${id}&range=24h`)
+      if (response.ok) {
+        const data = await response.json()
+        setHistory(data)
+      } else {
+        console.error(`History fetch failed for card ${id}:`, response.status)
+      }
+    } catch (error) {
+      console.error(`Failed to fetch history for card ${id}:`, error)
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }
+
+  // Initial status and history fetch
   useEffect(() => {
     fetchStatus()
+    fetchHistory()
   }, [id]) // Run when id changes
 
   // Polling every 30 seconds
   useEffect(() => {
     const interval = setInterval(fetchStatus, 30000)
+    return () => {
+      clearInterval(interval)
+    }
+  }, [id]) // Run when id changes
+
+  // Refresh history every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(fetchHistory, 5 * 60 * 1000)
     return () => {
       clearInterval(interval)
     }
@@ -268,6 +308,19 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
                 </span>
               )}
             </div>
+            
+            {/* Sparkline and Uptime */}
+            {history && (
+              <div className="bg-slate-700/30 rounded-md p-3">
+                <Sparkline 
+                  data={history.events}
+                  width={120}
+                  height={24}
+                  showUptime={true}
+                  className="text-slate-300"
+                />
+              </div>
+            )}
             
             {status.lastChecked && (
               <div className="text-xs text-slate-500 bg-slate-700/30 px-3 py-2 rounded-md">
