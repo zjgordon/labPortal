@@ -1,18 +1,21 @@
 # Lab Portal
 
-A modern, cyberpunk-styled laboratory control panel built with Next.js 14, featuring real-time service monitoring, drag-and-drop card management, and a sleek dark theme perfect for network laboratories.
+A modern, cyberpunk-styled laboratory control panel and **control plane** built with Next.js 14, featuring real-time service monitoring, drag-and-drop card management, host and service control, and a sleek dark theme perfect for network laboratories.
 
-![Lab Portal](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0-38B2AC?style=for-the-badge&logo=tailwind-css)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.3-38B2AC?style=for-the-badge&logo=tailwind-css)
 ![Prisma](https://img.shields.io/badge/Prisma-5.0-2D3748?style=for-the-badge&logo=prisma)
+![NextAuth](https://img.shields.io/badge/NextAuth-4.24-000000?style=for-the-badge&logo=next.js)
+![Jest](https://img.shields.io/badge/Jest-30.1-C21325?style=for-the-badge&logo=jest)
 
 ## ✨ Features
 
 ### 🎯 Core Functionality
-- **Real-time Service Monitoring** - Live status indicators for all lab tools
-- **Dynamic Card Management** - Add, edit, and organize lab tool cards
-- **Drag & Drop Interface** - Intuitive card reordering with instant persistence
+- **Real-time Service Monitoring** - Live status indicators for all lab tools with trend analysis
+- **Dynamic Card Management** - Add, edit, and organize lab tool cards with drag & drop
+- **Quick Service Control** - Start/stop/restart services directly from card UI (admin)
+- **Host & Service Management** - Complete control plane for infrastructure management
 - **Icon Management** - Upload and manage custom icons for each tool
 - **Responsive Design** - Works perfectly on desktop, tablet, and mobile
 
@@ -27,6 +30,16 @@ A modern, cyberpunk-styled laboratory control panel built with Next.js 14, featu
 - **Session Management** - Secure authentication with NextAuth.js
 - **Input Validation** - Comprehensive validation and sanitization
 - **Rate Limiting** - Protection against abuse and overload
+- **API Key Authentication** - Secure authentication for automation and CI/CD
+- **Guard Rails** - Enterprise-grade rate limiting and audit logging
+
+### 🎮 Control Plane & Infrastructure
+- **Host Management** - Add, configure, and monitor infrastructure hosts
+- **Service Management** - Configure systemd services with permissions
+- **Local Execution** - Direct systemctl integration for portal host
+- **Remote Agents** - Token-based agent system for distributed execution
+- **Action Queue** - Comprehensive action lifecycle management
+- **Health Monitoring** - Agent heartbeat and status reporting
 
 ## 🚀 Quick Start
 
@@ -100,6 +113,10 @@ npm run dev
 - **Upload Icons**: Customize each tool with unique icons
 - **Enable/Disable**: Control which tools are visible to users
 - **Import/Export**: Bulk import and export card configurations as JSON
+- **Host Management**: Configure and monitor infrastructure hosts
+- **Service Management**: Set up and control systemd services
+- **Quick Controls**: Start/stop/restart services directly from cards
+- **Action History**: View and manage control action history
 
 ## 🎨 Customization
 
@@ -221,6 +238,41 @@ Check status of a specific card
 - **Response**: Current status with health check results
 - **Caching**: Results cached for 30 seconds
 
+#### GET `/api/status/history?cardId=...`
+Get status history for trend analysis
+- **Response**: Historical status data with timestamps
+- **Features**: 24h/7d trend data with sparkline visualization
+
+#### GET `/api/status/summary?cardId=...`
+Get uptime statistics and performance metrics
+- **Response**: Uptime percentage and performance data
+
+### Control Plane Endpoints
+
+#### Host Management
+- `GET /api/hosts` - List all hosts (admin)
+- `POST /api/hosts` - Create new host (admin)
+- `PUT /api/hosts/:id` - Update host (admin)
+- `DELETE /api/hosts/:id` - Delete host (admin)
+- `GET /api/hosts/:id/token` - Generate host token (admin)
+
+#### Service Management
+- `GET /api/services` - List all services (admin)
+- `POST /api/services` - Create new service (admin)
+- `PUT /api/services/:id` - Update service (admin)
+- `DELETE /api/services/:id` - Delete service (admin)
+
+#### Control Actions
+- `POST /api/control/actions` - Create control action (admin)
+- `GET /api/control/actions/:id` - Get action status (admin)
+- `GET /api/control/queue` - Agent action polling
+- `POST /api/control/report` - Agent status reporting
+- `GET /api/control/cron` - Cron job management (admin)
+- `POST /api/control/prune` - Manual data pruning (admin)
+
+#### Agent System
+- `POST /api/agents/heartbeat` - Agent health monitoring
+
 ## 📁 Project Structure
 
 ```
@@ -228,17 +280,37 @@ src/
 ├── app/                    # Next.js App Router
 │   ├── admin/             # Admin panel routes
 │   ├── api/               # API endpoints
+│   │   ├── auth/          # NextAuth authentication
+│   │   ├── cards/         # Card management
+│   │   ├── status/        # Status monitoring & history
+│   │   ├── control/       # Control plane APIs
+│   │   ├── hosts/         # Host management
+│   │   ├── services/      # Service management
+│   │   ├── agents/        # Agent health monitoring
+│   │   └── test-env/      # Test environment API
 │   └── page.tsx           # Main portal page
 ├── components/             # React components
 │   ├── ui/                # shadcn/ui components
-│   ├── lab-card.tsx       # Lab tool card component
-│   └── status-indicator.tsx # Status display component
+│   ├── lab-card.tsx       # Lab tool card with quick controls
+│   ├── status-indicator.tsx # Status display component
+│   ├── sparkline.tsx      # Trend visualization
+│   └── card-edit-dialog.tsx # Card editing dialog
 ├── lib/                    # Utilities and configurations
+│   ├── auth.ts            # Authentication & authorization
+│   ├── probe.ts           # URL health checking
+│   ├── status-sweeper.ts  # Background status monitoring
+│   ├── systemctl-executor.ts # Local action execution
+│   ├── action-pruner.ts   # Action history management
+│   ├── cron-manager.ts    # Cron job management
+│   └── logger.ts          # Structured logging
 └── types/                  # TypeScript definitions
 
 prisma/
-├── schema.prisma          # Database schema
-└── seed.ts                # Initial data seeding
+├── schema.prisma          # Database schema (Cards, Status, Hosts, Services, Actions)
+└── seed.ts                # Initial data with managed services
+
+scripts/
+└── curl/                  # Smoke testing scripts
 ```
 
 ## 🔧 Available Scripts
@@ -249,6 +321,61 @@ prisma/
 - `npm run prisma:generate` - Generate Prisma client
 - `npm run prisma:migrate` - Run database migrations
 - `npm run prisma:seed` - Seed database with example data
+
+## 🧪 Testing
+
+### Manual Smoke Testing
+
+The project includes a comprehensive smoke test script for validating the control actions flow without UI:
+
+```bash
+# Run smoke test with defaults (localhost:3000, admin123 password)
+./scripts/curl/control-smoke.sh
+
+# Custom URL and password
+./scripts/curl/control-smoke.sh -u http://localhost:8080 -p mypassword
+
+# Using environment variables
+BASE_URL=http://localhost:8080 ADMIN_PASSWORD=mypassword ./scripts/curl/control-smoke.sh
+
+# Show help
+./scripts/curl/control-smoke.sh --help
+```
+
+**What the smoke test validates:**
+- ✅ Portal readiness and connectivity
+- ✅ Admin authentication
+- ✅ Host and service creation/retrieval
+- ✅ Control action enqueuing (start/stop/restart)
+- ✅ Localhost path completion (systemctl executor)
+- ✅ Agent path pickup verification
+
+**Requirements:**
+- `curl` - HTTP client for API calls
+- `jq` - JSON processor for response parsing
+- Portal running and accessible
+- API key authentication configured (see `scripts/curl/env.example`)
+
+**Test Flow:**
+1. Creates test host (`smoke-test-host`) and service (`smoke-test.service`)
+2. Enqueues start/stop actions and verifies localhost completion
+3. Enqueues restart action and verifies agent pickup
+4. Cleans up temporary files automatically
+
+**Documentation:**
+- [Comprehensive Smoke Testing Guide](SMOKE_TESTING.md)
+- [Scripts Directory](scripts/README.md)
+- [Control Actions API](CONTROL_ACTIONS_API.md)
+- [Agent System API](AGENT_API.md)
+- [Local Action Execution](LOCAL_ACTION_EXECUTION.md)
+- [Project Status](PROJECT_STATUS.md)
+
+### Testing Framework
+- **Jest Integration** - Full testing framework with coverage reporting
+- **Component Testing** - React component testing with React Testing Library
+- **API Testing** - Comprehensive API endpoint testing
+- **Smoke Testing** - End-to-end validation without UI dependencies
+- **CI/CD Ready** - Automated testing for deployment pipelines
 
 ## 🌐 API Endpoints
 
@@ -270,8 +397,28 @@ prisma/
 - **Input Validation** - Zod schemas for all inputs
 - **File Upload Security** - Type and size validation with image processing
 - **Rate Limiting** - API protection against abuse
-- **Authentication** - Secure admin access
+- **Authentication** - Secure admin access with NextAuth.js
+- **API Key Authentication** - Alternative authentication for automation and CI/CD
 - **XSS Protection** - Comprehensive security headers and CSP enforcement
+
+## 🛡️ Enterprise Features & Guard Rails
+
+### Rate Limiting & Protection
+- **Admin Rate Limiting** - 10 actions/minute per admin user
+- **API Protection** - Comprehensive rate limiting for all endpoints
+- **Abuse Prevention** - Protection against automated attacks
+
+### Audit & Compliance
+- **Action History** - Immutable 90-day retention of all control actions
+- **Comprehensive Logging** - Structured logging for all system events
+- **Audit Trail** - Complete tracking of who did what and when
+- **No Sensitive Data** - Logs exclude passwords and sensitive information
+
+### Automated Maintenance
+- **Data Pruning** - Automated cleanup of old action history
+- **Cron Management** - Scheduled maintenance and cleanup tasks
+- **Background Services** - Automated status monitoring and health checks
+- **Graceful Shutdown** - Proper cleanup of background processes
 
 ## 📁 File Uploads & Image Processing
 
@@ -286,13 +433,42 @@ The portal includes secure file upload handling with advanced image processing:
 ## 📊 Status Monitoring
 
 The portal includes a sophisticated status monitoring system:
-- **Real-time Updates** - Status checked every 30 seconds
-- **Smart Caching** - Efficient API usage with intelligent caching
+- **Real-time Updates** - Status checked every 10 seconds with smart caching
+- **Trend Analysis** - 24h/7d status history with sparkline visualization
+- **Uptime Statistics** - Performance metrics and uptime percentage tracking
 - **Health Path Support** - Optional custom health check endpoints for each service
 - **Enhanced Probes** - HEAD requests with GET fallback for better compatibility
 - **Error Handling** - Comprehensive error detection and reporting
 - **Latency Measurement** - Response time tracking for each service
 - **HTTP Status Tracking** - Records last HTTP status code and response messages
+- **Background Monitoring** - Automated status sweeping with 45-60s intervals
+- **Status Events** - Immutable status history with comprehensive logging
+
+## 🎮 Control Plane & Infrastructure
+
+### Host Management
+- **Infrastructure Control** - Add and configure hosts for service management
+- **Token Authentication** - Secure agent tokens for remote access
+- **Health Monitoring** - Track host availability and agent status
+- **Service Association** - Link services to specific hosts
+
+### Service Management
+- **Systemd Integration** - Direct control of systemd services
+- **Permission Control** - Configure start/stop/restart permissions
+- **Card Linking** - Associate services with portal cards
+- **Action History** - Track all service control operations
+
+### Quick Controls
+- **Card-Level Actions** - Start/stop/restart services directly from cards
+- **Real-Time Feedback** - Toast notifications for action status
+- **Permission Validation** - Respects service-level permissions
+- **Rate Limiting** - 10 actions/minute per admin with guard rails
+
+### Agent System
+- **Remote Execution** - Pull-based architecture for distributed control
+- **Token Security** - Secure authentication for remote agents
+- **Health Monitoring** - Agent heartbeat and status reporting
+- **Action Queue** - Centralized action management and distribution
 
 ## 🤝 Contributing
 
