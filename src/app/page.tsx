@@ -1,14 +1,119 @@
-import { Suspense } from 'react'
+"use client"
+
+import { Suspense, useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LabCard } from '@/components/lab-card'
-import { getEnabledCards } from '@/lib/actions'
-import { ExternalLink, Plus, Server } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { ExternalLink, Plus, Server, Search } from 'lucide-react'
 import Link from 'next/link'
 
-async function LabCardsGrid() {
-  const cards = await getEnabledCards()
-  
+// Client-side time display component to avoid hydration errors
+function TimeDisplay() {
+  const [time, setTime] = useState('')
+
+  useEffect(() => {
+    const updateTime = () => {
+      setTime(new Date().toLocaleTimeString())
+    }
+    
+    // Update immediately
+    updateTime()
+    
+    // Update every second
+    const interval = setInterval(updateTime, 1000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  return <span>{time}</span>
+}
+
+interface Card {
+  id: string
+  title: string
+  description: string
+  url: string
+  iconPath: string | null
+  order: number
+  isEnabled: boolean
+  group: string
+}
+
+function LabCardsGrid() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [cards, setCards] = useState<Card[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch cards on component mount
+  useEffect(() => {
+    const fetchCards = async () => {
+      try {
+        const response = await fetch('/api/cards', { cache: 'no-store' })
+        const data = await response.json()
+        setCards(data)
+      } catch (error) {
+        console.error('Failed to fetch cards:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchCards()
+  }, [])
+
+  // Filter and group cards
+  const groupedCards = useMemo(() => {
+    if (!cards.length) return {}
+
+    // Filter cards based on search query
+    const filteredCards = cards.filter(card =>
+      card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      card.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      card.group.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+
+    // Group cards by category
+    const grouped = filteredCards.reduce((acc, card) => {
+      if (!acc[card.group]) {
+        acc[card.group] = []
+      }
+      acc[card.group].push(card)
+      return acc
+    }, {} as Record<string, Card[]>)
+
+    // Sort groups alphabetically and sort cards within each group by order
+    Object.keys(grouped).forEach(group => {
+      grouped[group].sort((a, b) => a.order - b.order)
+    })
+
+    return grouped
+  }, [cards, searchQuery])
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        {[...Array(6)].map((_, i) => (
+          <Card key={i} className="animate-pulse h-full bg-slate-800 border-slate-700">
+            <CardHeader className="pb-4 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-slate-700 rounded-lg" />
+              </div>
+              <div className="h-6 bg-slate-700 rounded mb-2" />
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-3 text-center">
+                <div className="h-4 bg-slate-700 rounded" />
+                <div className="h-4 bg-slate-700 rounded w-3/4 mx-auto" />
+                <div className="h-4 bg-slate-700 rounded w-1/2 mx-auto" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
   if (cards.length === 0) {
     return (
       <div className="text-center py-12">
@@ -27,19 +132,70 @@ async function LabCardsGrid() {
     )
   }
 
+  const groupNames = Object.keys(groupedCards).sort()
+
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {cards.map((card) => (
-        <LabCard
-          key={card.id}
-          id={card.id}
-          title={card.title}
-          description={card.description}
-          url={card.url}
-          iconPath={card.iconPath}
-          order={card.order}
+    <div className="space-y-8">
+      {/* Search Bar */}
+      <div className="relative max-w-md mx-auto">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+        <Input
+          type="text"
+          placeholder="Search lab tools..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:ring-emerald-400/20"
         />
+      </div>
+
+      {/* Grouped Cards */}
+      {groupNames.map(groupName => (
+        <div key={groupName} className="space-y-4">
+          {/* Category Header */}
+          <div className="flex items-center space-x-3">
+            <h3 className="text-xl font-semibold text-slate-200">
+              {groupName}
+            </h3>
+            <div className="flex-1 h-px bg-slate-700"></div>
+            <span className="text-sm text-slate-500 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+              {groupedCards[groupName].length} tool{groupedCards[groupName].length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* Cards Grid for this Category */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {groupedCards[groupName].map((card) => (
+              <LabCard
+                key={card.id}
+                id={card.id}
+                title={card.title}
+                description={card.description}
+                url={card.url}
+                iconPath={card.iconPath}
+                order={card.order}
+              />
+            ))}
+          </div>
+        </div>
       ))}
+
+      {/* No Results Message */}
+      {searchQuery && groupNames.length === 0 && (
+        <div className="text-center py-12">
+          <Search className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-300 mb-2">No Results Found</h3>
+          <p className="text-slate-500 mb-6 max-w-md mx-auto">
+            No lab tools match your search for "{searchQuery}". Try adjusting your search terms.
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={() => setSearchQuery('')}
+            className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300"
+          >
+            Clear Search
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -76,7 +232,7 @@ export default function HomePage() {
                 </div>
                 <div className="text-slate-600">|</div>
                 <div className="text-slate-400">
-                  {new Date().toLocaleTimeString()}
+                  <TimeDisplay />
                 </div>
               </div>
               <Link href="/admin/login">

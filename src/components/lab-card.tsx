@@ -187,24 +187,24 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
           {/* Centered Icon */}
           <div className="flex justify-center mb-4">
             {iconPath ? (
-              <div className="w-16 h-16 bg-slate-700/50 rounded-lg p-2 flex items-center justify-center group-hover:bg-slate-600/50 transition-colors">
+              <div className="w-16 h-16 bg-slate-700/50 rounded-lg p-2 flex items-center justify-center group-hover:bg-slate-600/50 transition-all duration-300 shadow-[0_0_20px_rgba(52,211,153,0.3)] group-hover:shadow-[0_0_25px_rgba(52,211,153,0.5)] border border-emerald-400/20 group-hover:border-emerald-400/40">
                 <Image 
                   src={iconPath} 
                   alt={`${title} icon`}
                   width={40}
                   height={40}
-                  className="object-contain"
+                  className="object-contain drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]"
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 bg-slate-700/50 rounded-lg p-2 flex items-center justify-center group-hover:bg-slate-600/50 transition-colors">
-                <Monitor className="w-10 h-10 text-slate-400" />
+              <div className="w-16 h-16 bg-slate-700/50 rounded-lg p-2 flex items-center justify-center group-hover:bg-slate-600/50 transition-all duration-300 shadow-[0_0_20px_rgba(52,211,153,0.3)] group-hover:shadow-[0_0_25px_rgba(52,211,153,0.5)] border border-emerald-400/20 group-hover:border-emerald-400/40">
+                <Monitor className="w-10 h-10 text-slate-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]" />
               </div>
             )}
           </div>
 
           {/* Centered Title */}
-          <CardTitle className="text-xl font-semibold leading-tight group-hover:text-emerald-400 transition-colors mb-2">
+          <CardTitle className="text-xl font-semibold leading-tight mb-2 bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
             {title}
           </CardTitle>
 

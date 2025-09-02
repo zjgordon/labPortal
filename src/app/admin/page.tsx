@@ -621,9 +621,18 @@ export default function AdminPage() {
             <p className="text-xl text-slate-400 mb-2">Configure and manage your lab portal</p>
             <p className="text-sm text-slate-500">Simple password-based access</p>
           </div>
-          <Button onClick={handleLogout} variant="outline" className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]">
-            Logout
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              onClick={() => router.push('/')} 
+              variant="outline" 
+              className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]"
+            >
+              ← Back to Portal
+            </Button>
+            <Button onClick={handleLogout} variant="outline" className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]">
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Configuration Sections */}

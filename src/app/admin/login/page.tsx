@@ -54,9 +54,19 @@ export default function AdminLoginPage() {
           <h1 className="text-3xl font-bold text-slate-100 mb-2">
             Admin Access
           </h1>
-          <p className="text-slate-400">
+          <p className="text-slate-400 mb-6">
             Enter the admin password to configure the portal
           </p>
+          
+          {/* Back to Portal Button */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.push('/')}
+            className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]"
+          >
+            ← Back to Portal
+          </Button>
         </div>
 
         <Card className="bg-slate-800 border-slate-700 text-slate-100">
