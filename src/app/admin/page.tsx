@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { CardEditDialog } from '@/components/card-edit-dialog'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Plus, Edit, Trash2, GripVertical, Eye, EyeOff, ExternalLink, Monitor } from 'lucide-react'
@@ -15,9 +15,20 @@ interface AdminCard {
   title: string
   description: string
   url: string
+  healthPath: string | null
+  group: string
   iconPath: string | null
   order: number
   isEnabled: boolean
+  status?: {
+    isUp: boolean
+    lastChecked: string | null
+    lastHttp: number | null
+    latencyMs: number | null
+    message: string | null
+    failCount: number
+    nextCheckAt: string | null
+  } | null
 }
 
 export default function AdminPage() {
@@ -36,7 +47,13 @@ export default function AdminPage() {
       const response = await fetch('/api/cards/all')
       if (response.ok) {
         const data = await response.json()
-        setCards(data.sort((a: AdminCard, b: AdminCard) => a.order - b.order))
+        // Sort by group first, then by order within each group
+        setCards(data.sort((a: AdminCard, b: AdminCard) => {
+          if (a.group !== b.group) {
+            return a.group.localeCompare(b.group)
+          }
+          return a.order - b.order
+        }))
       } else {
         throw new Error('Failed to fetch cards')
       }
@@ -97,18 +114,26 @@ export default function AdminPage() {
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return
 
+    const { source, destination } = result
     const items = Array.from(cards)
-    const [reorderedItem] = items.splice(result.source.index, 1)
-    items.splice(result.destination.index, 0, reorderedItem)
+    
+    // Find the dragged item
+    const [draggedItem] = items.splice(source.index, 1)
+    
+    // Insert at destination
+    items.splice(destination.index, 0, draggedItem)
 
     // Update local state immediately for responsive UI
-    setCards(items.map((item, index) => ({ ...item, order: index })))
+    // Recalculate order values for all items
+    const updatedItems = items.map((item, index) => ({ ...item, order: index }))
+    setCards(updatedItems)
 
     // Persist the new order to the server
     try {
-      const reorderData = items.map((item, index) => ({
+      const reorderData = updatedItems.map((item, index) => ({
         id: item.id,
         order: index,
+        group: item.group,
       }))
 
       const response = await fetch('/api/cards/reorder', {
@@ -148,7 +173,7 @@ export default function AdminPage() {
     setEditDialogOpen(true)
   }
 
-  const handleSaveCard = async (cardData: { title: string; description: string; url: string; isEnabled: boolean }) => {
+  const handleSaveCard = async (cardData: { title: string; description: string; url: string; healthPath?: string; group: string; isEnabled: boolean }) => {
     try {
       if (isNewCard) {
         // Create new card
@@ -259,6 +284,101 @@ export default function AdminPage() {
     router.push('/admin/login')
   }
 
+  const handleExportCards = async () => {
+    try {
+      const response = await fetch('/api/cards/export')
+      if (!response.ok) {
+        throw new Error('Failed to export cards')
+      }
+      
+      const cards = await response.json()
+      
+      // Create and download the JSON file
+      const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `lab-portal-cards-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      toast({
+        title: "Export Successful",
+        description: `Exported ${cards.length} cards successfully.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export cards. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleImportCards = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const text = await file.text()
+      const cards = JSON.parse(text)
+      
+      if (!Array.isArray(cards)) {
+        throw new Error('Invalid file format: expected JSON array')
+      }
+
+      const response = await fetch('/api/cards/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cards }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Import failed')
+      }
+
+      const result = await response.json()
+      
+      toast({
+        title: "Import Successful",
+        description: result.message,
+      })
+
+      // Refresh the cards list
+      fetchCards()
+      
+      // Reset the file input
+      event.target.value = ''
+    } catch (error) {
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to import cards. Please check the file format.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Group cards by their group for display
+  const groupedCards = useMemo(() => {
+    const grouped: { [key: string]: AdminCard[] } = {}
+    cards.forEach(card => {
+      if (!grouped[card.group]) {
+        grouped[card.group] = []
+      }
+      grouped[card.group].push(card)
+    })
+    
+    // Sort groups alphabetically
+    Object.keys(grouped).forEach(group => {
+      grouped[group].sort((a, b) => a.order - b.order)
+    })
+    
+    return grouped
+  }, [cards])
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -299,11 +419,32 @@ export default function AdminPage() {
           </div>
 
           {/* Add New Card Button */}
-          <div className="mb-6">
+          <div className="mb-6 flex gap-3">
             <Button onClick={handleCreateCard} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)] transition-all duration-200">
               <Plus className="w-4 h-4 mr-2" />
               Add New Card
             </Button>
+            <Button 
+              onClick={handleExportCards}
+              variant="outline"
+              className="border-blue-400/50 text-blue-400 hover:bg-blue-400/10 hover:border-blue-400 hover:text-blue-300 transition-all duration-200"
+            >
+              Export Cards
+            </Button>
+            <Button 
+              onClick={() => document.getElementById('import-file-manager')?.click()}
+              variant="outline"
+              className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10 hover:border-purple-400 hover:text-purple-300 transition-all duration-200"
+            >
+              Import Cards
+            </Button>
+            <input
+              id="import-file-manager"
+              type="file"
+              accept=".json"
+              onChange={handleImportCards}
+              className="hidden"
+            />
           </div>
 
           {/* Cards List */}
@@ -313,88 +454,142 @@ export default function AdminPage() {
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="space-y-3"
+                  className="space-y-8"
                 >
-                  {cards.map((card, index) => (
-                    <Draggable key={card.id} draggableId={card.id} index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:border-slate-600 transition-colors"
-                        >
-                          <div className="flex items-center gap-4">
-                            {/* Drag Handle */}
-                            <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
-                              <GripVertical className="w-5 h-5 text-slate-500" />
-                            </div>
+                  {Object.entries(groupedCards).map(([group, groupCards]) => (
+                    <div key={group} className="space-y-4">
+                      {/* Group Header */}
+                      <div className="border-b border-slate-600 pb-2">
+                        <h3 className="text-xl font-semibold text-slate-200">
+                          {group}
+                          <span className="ml-3 text-sm font-normal text-slate-400">
+                            ({groupCards.length} card{groupCards.length !== 1 ? 's' : ''})
+                          </span>
+                        </h3>
+                      </div>
+                      
+                      {/* Group Cards */}
+                      <div className="space-y-3">
+                        {groupCards.map((card, index) => (
+                          <Draggable key={card.id} draggableId={card.id} index={cards.findIndex(c => c.id === card.id)}>
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:border-slate-600 transition-colors"
+                              >
+                                <div className="flex items-center gap-4">
+                                  {/* Drag Handle */}
+                                  <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
+                                    <GripVertical className="w-5 h-5 text-slate-500" />
+                                  </div>
 
-                            {/* Card Icon */}
-                            <div className="w-12 h-12 bg-slate-700 rounded-lg flex items-center justify-center">
-                              {card.iconPath ? (
-                                <Image 
-                                  src={card.iconPath} 
-                                  alt={`${card.title} icon`}
-                                  width={32}
-                                  height={32}
-                                  className="object-contain"
-                                />
-                              ) : (
-                                <Monitor className="w-6 h-6 text-slate-400" />
-                              )}
-                            </div>
+                                  {/* Card Icon */}
+                                  <div className="w-12 h-12 bg-slate-700 rounded-lg flex items-center justify-center">
+                                    {card.iconPath ? (
+                                      <Image 
+                                        src={card.iconPath} 
+                                        alt={`${card.title} icon`}
+                                        width={32}
+                                        height={32}
+                                        className="object-contain"
+                                      />
+                                    ) : (
+                                      <Monitor className="w-6 h-6 text-slate-400" />
+                                    )}
+                                  </div>
 
-                            {/* Card Info */}
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="font-semibold text-slate-100">{card.title}</h3>
-                                <div className="flex items-center gap-2">
-                                  {card.isEnabled ? (
-                                    <Eye className="w-4 h-4 text-emerald-400" />
-                                  ) : (
-                                    <EyeOff className="w-4 h-4 text-slate-500" />
-                                  )}
-                                  <span className={`text-xs px-2 py-1 rounded ${
-                                    card.isEnabled 
-                                      ? 'bg-emerald-500/20 text-emerald-400' 
-                                      : 'bg-slate-600/50 text-slate-400'
-                                  }`}>
-                                    {card.isEnabled ? 'Enabled' : 'Disabled'}
-                                  </span>
+                                  {/* Card Info */}
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <h3 className="font-semibold text-slate-100">{card.title}</h3>
+                                      <div className="flex items-center gap-2">
+                                        {card.isEnabled ? (
+                                          <Eye className="w-4 h-4 text-emerald-400" />
+                                        ) : (
+                                          <EyeOff className="w-4 h-4 text-slate-500" />
+                                        )}
+                                        <span className={`text-xs px-2 py-1 rounded ${
+                                          card.isEnabled 
+                                            ? 'bg-emerald-500/20 text-emerald-400' 
+                                            : 'bg-slate-600/50 text-slate-400'
+                                        }`}>
+                                          {card.isEnabled ? 'Enabled' : 'Disabled'}
+                                        </span>
+                                        <span className="text-xs px-2 py-1 rounded bg-slate-600/50 text-slate-400">
+                                          {card.group}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-slate-400 mb-2">{card.description}</p>
+                                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                                      <ExternalLink className="w-3 h-3" />
+                                      {card.url}
+                                    </div>
+                                    
+                                    {/* Enhanced Status Display */}
+                                    {card.status && (
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-xs">
+                                          <div className={`w-2 h-2 rounded-full ${
+                                            card.status.isUp ? 'bg-emerald-400' : 'bg-red-400'
+                                          }`} />
+                                          <span className={card.status.isUp ? 'text-emerald-400' : 'text-red-400'}>
+                                            {card.status.isUp ? 'UP' : 'DOWN'}
+                                          </span>
+                                          {card.status.failCount > 0 && (
+                                            <span className="text-orange-400">
+                                              (Failed {card.status.failCount} times)
+                                            </span>
+                                          )}
+                                        </div>
+                                        {card.status.lastHttp && (
+                                          <div className="text-xs text-slate-500">
+                                            HTTP: {card.status.lastHttp}
+                                          </div>
+                                        )}
+                                        {card.status.message && (
+                                          <div className="text-xs text-slate-500">
+                                            {card.status.message}
+                                          </div>
+                                        )}
+                                        {card.status.nextCheckAt && (
+                                          <div className="text-xs text-slate-500">
+                                            Next check: {new Date(card.status.nextCheckAt).toLocaleTimeString()}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Actions */}
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      onClick={() => handleToggleEnabled(card.id, card.isEnabled)}
+                                      variant="outline"
+                                      size="sm"
+                                      className={`border-slate-600 text-slate-300 hover:bg-slate-700 ${
+                                        card.isEnabled ? 'hover:text-red-400' : 'hover:text-emerald-400'
+                                      }`}
+                                    >
+                                      {card.isEnabled ? 'Disable' : 'Enable'}
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleEditCard(card)}
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
-                              <p className="text-sm text-slate-400 mb-2">{card.description}</p>
-                              <div className="flex items-center gap-2 text-xs text-slate-500">
-                                <ExternalLink className="w-3 h-3" />
-                                {card.url}
-                              </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex items-center gap-2">
-                              <Button
-                                onClick={() => handleToggleEnabled(card.id, card.isEnabled)}
-                                variant="outline"
-                                size="sm"
-                                className={`border-slate-600 text-slate-300 hover:bg-slate-700 ${
-                                  card.isEnabled ? 'hover:text-red-400' : 'hover:text-emerald-400'
-                                }`}
-                              >
-                                {card.isEnabled ? 'Disable' : 'Enable'}
-                              </Button>
-                              <Button
-                                onClick={() => handleEditCard(card)}
-                                variant="outline"
-                                size="sm"
-                                className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </Draggable>
+                            )}
+                          </Draggable>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                   {provided.placeholder}
                 </div>
@@ -444,12 +639,37 @@ export default function AdminPage() {
               <p className="text-sm text-slate-400 mb-6">
                 Add, edit, and organize lab tool cards that users can access.
               </p>
-              <Button 
-                onClick={() => setShowCardManager(true)} 
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)] transition-all duration-200"
-              >
-                Manage Lab Tools
-              </Button>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => setShowCardManager(true)} 
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)] transition-all duration-200"
+                >
+                  Manage Lab Tools
+                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleExportCards}
+                    variant="outline"
+                    className="flex-1 border-blue-400/50 text-blue-400 hover:bg-blue-400/10 hover:border-blue-400 hover:text-blue-300 transition-all duration-200"
+                  >
+                    Export Cards
+                  </Button>
+                  <Button 
+                    onClick={() => document.getElementById('import-file')?.click()}
+                    variant="outline"
+                    className="flex-1 border-purple-400/50 text-purple-400 hover:bg-purple-400/10 hover:border-purple-400 hover:text-purple-300 transition-all duration-200"
+                  >
+                    Import Cards
+                  </Button>
+                </div>
+                <input
+                  id="import-file"
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportCards}
+                  className="hidden"
+                />
+              </div>
             </CardContent>
           </Card>
 

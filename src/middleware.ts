@@ -6,20 +6,20 @@ export default async function middleware(req: NextRequest) {
   // Add security headers to all responses
   const response = NextResponse.next()
 
-  // Content Security Policy - allow inline scripts for admin pages
+  // Content Security Policy - strict CSP for all pages
   const isAdminPage = req.nextUrl.pathname.startsWith('/admin') || req.nextUrl.pathname.includes('admin-test')
   
   if (isAdminPage) {
-    // More permissive CSP for admin pages
+    // More permissive CSP for admin pages (needed for form handling and dynamic content)
     response.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';"
+      "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
     )
   } else {
-    // Allow inline scripts for Next.js to work properly
+    // Strict CSP for public pages
     response.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';"
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
     )
   }
 

@@ -70,6 +70,9 @@ NEXTAUTH_SECRET="your-secret-key-here"
 
 # Admin Access
 ADMIN_PASSWORD="your-admin-password"
+
+# Portal Configuration
+PUBLIC_BASE_URL="http://localhost:3000"
 ```
 
 ### 3. Database Setup
@@ -96,6 +99,7 @@ npm run dev
 - **Manage Cards**: Add, edit, delete, and reorder lab tool cards
 - **Upload Icons**: Customize each tool with unique icons
 - **Enable/Disable**: Control which tools are visible to users
+- **Import/Export**: Bulk import and export card configurations as JSON
 
 ## 🎨 Customization
 
@@ -107,7 +111,42 @@ npm run dev
    - **Title**: Display name for the tool
    - **Description**: Brief description of the tool
    - **URL**: Service endpoint (http://, https://, or relative paths)
-   - **Icon**: Upload a custom icon (PNG/JPG, max 2MB)
+   - **Health Path**: Optional health check endpoint (e.g., /health, /status, /api/health)
+   - **Icon**: Upload a custom icon (PNG/JPEG/WebP, max 2MB)
+
+### Bulk Import/Export
+The admin panel supports bulk import and export of card configurations:
+
+#### Export Cards
+- Click "Export Cards" to download all current cards as a JSON file
+- The export excludes timestamps and status data for clean portability
+- Use this to backup your configuration or share with other instances
+
+#### Import Cards
+- Click "Import Cards" to upload a JSON file with card configurations
+- Cards are matched by ID first, then by title for upsert operations
+- New cards are created, existing ones are updated
+- Import results show counts of created/updated/skipped cards
+
+#### Import Format
+```json
+{
+  "cards": [
+    {
+      "title": "Service Name",
+      "description": "Service description",
+      "url": "http://service.local",
+      "iconPath": null,
+      "order": 1,
+      "isEnabled": true,
+      "group": "Service Group",
+      "healthPath": "/health"
+    }
+  ]
+}
+```
+
+**Note**: The `iconPath` field is ignored during import for security reasons. Icons must be uploaded separately through the admin interface.
 
 ### Styling
 The application uses Tailwind CSS with a custom cyberpunk theme:
@@ -136,9 +175,51 @@ docker run -d \
   -e NEXTAUTH_SECRET="your-secret" \
   -e ADMIN_PASSWORD="your-admin-password" \
   -e NEXTAUTH_URL="http://your-domain.com" \
+  -e PUBLIC_BASE_URL="http://your-domain.com" \
   -v ./uploads:/app/public/uploads \
   lab-portal
 ```
+
+## 🔌 API Reference
+
+### Card Management Endpoints
+
+#### GET `/api/cards/export`
+Export all cards as JSON (admin only)
+- **Response**: Array of card objects (excludes timestamps and status)
+- **Use Case**: Backup configurations, share between instances
+
+#### POST `/api/cards/import`
+Import cards from JSON (admin only)
+- **Body**: `{ "cards": [...] }` array of card objects
+- **Response**: Import results with counts and any errors
+- **Features**: Upsert by ID or title, skips icon binary data
+
+#### GET `/api/cards/all`
+Get all cards with status (admin only)
+- **Response**: Array of cards with full details including status
+
+#### POST `/api/cards`
+Create new card (admin only)
+- **Body**: Card object with required fields
+
+#### PUT `/api/cards/:id`
+Update existing card (admin only)
+- **Body**: Partial card object with fields to update
+
+#### DELETE `/api/cards/:id`
+Delete card (admin only)
+
+#### POST `/api/cards/reorder`
+Reorder cards (admin only)
+- **Body**: `{ "cards": [{ "id": "...", "order": 1, "group": "..." }] }`
+
+### Status Endpoints
+
+#### GET `/api/status?cardId=...`
+Check status of a specific card
+- **Response**: Current status with health check results
+- **Caching**: Results cached for 30 seconds
 
 ## 📁 Project Structure
 
@@ -185,19 +266,33 @@ prisma/
 
 ## 🔒 Security Features
 
+- **Content Security Policy (CSP)** - Strict CSP headers preventing XSS and unauthorized resource loading
 - **Input Validation** - Zod schemas for all inputs
-- **File Upload Security** - Type and size validation
+- **File Upload Security** - Type and size validation with image processing
 - **Rate Limiting** - API protection against abuse
 - **Authentication** - Secure admin access
-- **XSS Protection** - Content Security Policy headers
+- **XSS Protection** - Comprehensive security headers and CSP enforcement
+
+## 📁 File Uploads & Image Processing
+
+The portal includes secure file upload handling with advanced image processing:
+- **Supported Formats** - PNG, JPEG, and WebP images up to 2MB
+- **Image Processing** - Automatic conversion to optimized PNG format using Sharp
+- **Security Features** - EXIF data stripping, size validation, and type checking
+- **Optimization** - Images resized to 128x128px with high compression
+- **Storage** - Files stored in `/public/uploads/` with automatic cleanup
+- **Icon Management** - Automatic old icon cleanup when replacing
 
 ## 📊 Status Monitoring
 
 The portal includes a sophisticated status monitoring system:
 - **Real-time Updates** - Status checked every 30 seconds
 - **Smart Caching** - Efficient API usage with intelligent caching
+- **Health Path Support** - Optional custom health check endpoints for each service
+- **Enhanced Probes** - HEAD requests with GET fallback for better compatibility
 - **Error Handling** - Comprehensive error detection and reporting
 - **Latency Measurement** - Response time tracking for each service
+- **HTTP Status Tracking** - Records last HTTP status code and response messages
 
 ## 🤝 Contributing
 

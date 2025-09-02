@@ -11,11 +11,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = reorderSchema.parse(body)
 
-    // Update all cards with new order values
-    const updatePromises = validatedData.cards.map(({ id, order }) =>
+    // Update all cards with new order values and groups
+    const updatePromises = validatedData.cards.map(({ id, order, group }) =>
       prisma.card.update({
         where: { id },
-        data: { order },
+        data: { order, group },
       })
     )
 

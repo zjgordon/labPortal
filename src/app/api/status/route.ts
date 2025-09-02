@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { probeUrl } from '@/lib/probe'
 import { statusQuerySchema } from '@/lib/validation'
 
-// GET /api/status?cardId=... - Check card status
+// GET /api/status?cardId=... - Check card status with enhanced caching and fail tracking
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -33,21 +33,58 @@ export async function GET(request: NextRequest) {
     }
     
     const now = new Date()
-    const tenSecondsAgo = new Date(now.getTime() - 10 * 1000) // Reduced from 30s to 10s for more responsive updates
     
-    // Check if we have recent status data (less than 10 seconds old)
-    if (card.status && card.status.lastChecked && card.status.lastChecked > tenSecondsAgo) {
-      // Return cached status
-      return NextResponse.json({
-        isUp: card.status.isUp,
-        lastChecked: card.status.lastChecked,
-        lastHttp: card.status.lastHttp,
-        latencyMs: card.status.latencyMs,
-      })
+    // Check if we should return cached status
+    if (card.status) {
+      // If nextCheckAt is set and we haven't reached it yet, return cached
+      if (card.status.nextCheckAt && now < card.status.nextCheckAt) {
+        return NextResponse.json({
+          isUp: card.status.isUp,
+          lastChecked: card.status.lastChecked,
+          lastHttp: card.status.lastHttp,
+          latencyMs: card.status.latencyMs,
+          message: card.status.message,
+          failCount: card.status.failCount,
+          nextCheckAt: card.status.nextCheckAt,
+        })
+      }
+      
+      // If lastChecked is less than 30 seconds ago, return cached
+      if (card.status.lastChecked) {
+        const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000)
+        if (card.status.lastChecked > thirtySecondsAgo) {
+          return NextResponse.json({
+            isUp: card.status.isUp,
+            lastChecked: card.status.lastChecked,
+            lastHttp: card.status.lastHttp,
+            latencyMs: card.status.latencyMs,
+            message: card.status.message,
+            failCount: card.status.failCount,
+            nextCheckAt: card.status.nextCheckAt,
+          })
+        }
+      }
     }
     
     // Probe the URL with a reasonable timeout
-    const probeResult = await probeUrl(card.url, 8000)
+    const probeResult = await probeUrl(card.url, card.healthPath, 3000)
+    
+    // Calculate new failCount and nextCheckAt
+    let newFailCount = card.status?.failCount || 0
+    let newNextCheckAt: Date | null = null
+    
+    if (probeResult.isUp) {
+      // Service is up, reset failCount
+      newFailCount = 0
+    } else {
+      // Service is down, increment failCount
+      newFailCount = (card.status?.failCount || 0) + 1
+      
+      // If failCount >= 3, set nextCheckAt to 60 seconds from now
+      if (newFailCount >= 3) {
+        newNextCheckAt = new Date(now.getTime() + 60 * 1000)
+      }
+    }
     
     // Update or create CardStatus
     const updatedStatus = await prisma.cardStatus.upsert({
@@ -58,6 +95,8 @@ export async function GET(request: NextRequest) {
         lastHttp: probeResult.lastHttp,
         latencyMs: probeResult.latencyMs,
         message: probeResult.message,
+        failCount: newFailCount,
+        nextCheckAt: newNextCheckAt,
       },
       create: {
         cardId: card.id,
@@ -66,18 +105,23 @@ export async function GET(request: NextRequest) {
         lastHttp: probeResult.lastHttp,
         latencyMs: probeResult.latencyMs,
         message: probeResult.message,
+        failCount: newFailCount,
+        nextCheckAt: newNextCheckAt,
       },
     })
     
     // Log the status check result
-    console.log(`Status check for card ${card.title} (${card.url}): ${probeResult.isUp ? 'UP' : 'DOWN'} - ${probeResult.latencyMs}ms - ${probeResult.message}`)
+    console.log(`Status check for card ${card.title} (${card.url}): ${probeResult.isUp ? 'UP' : 'DOWN'} - ${probeResult.latencyMs}ms - ${probeResult.message} - Fail count: ${newFailCount}`)
     
     // Return the status
     return NextResponse.json({
       isUp: updatedStatus.isUp,
       lastChecked: updatedStatus.lastChecked,
       lastHttp: updatedStatus.lastHttp,
-        latencyMs: updatedStatus.latencyMs,
+      latencyMs: updatedStatus.latencyMs,
+      message: updatedStatus.message,
+      failCount: updatedStatus.failCount,
+      nextCheckAt: updatedStatus.nextCheckAt,
     })
     
   } catch (error) {

@@ -12,8 +12,10 @@ export interface Card {
   title: string
   description: string
   url: string
+  healthPath: string | null
   iconPath: string | null
   order: number
+  group: string
   isEnabled: boolean
   status?: CardStatus
   createdAt: string
@@ -28,6 +30,8 @@ export interface CardStatus {
   lastHttp: number | null
   latencyMs: number | null
   message: string | null
+  failCount: number
+  nextCheckAt: string | null
 }
 
 // Card creation/update types
@@ -35,6 +39,8 @@ export interface CreateCardRequest {
   title: string
   description: string
   url: string
+  healthPath?: string
+  group?: string
   isEnabled?: boolean
 }
 
@@ -42,8 +48,10 @@ export interface UpdateCardRequest {
   title?: string
   description?: string
   url?: string
+  healthPath?: string
   iconPath?: string
   order?: number
+  group?: string
   isEnabled?: boolean
 }
 
@@ -52,6 +60,7 @@ export interface ReorderRequest {
   cards: Array<{
     id: string
     order: number
+    group: string
   }>
 }
 

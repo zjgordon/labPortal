@@ -20,6 +20,9 @@ interface CardStatus {
   lastChecked: string | null
   lastHttp: number | null
   latencyMs: number | null
+  message: string | null
+  failCount: number
+  nextCheckAt: string | null
 }
 
 export function LabCard({ id, title, description, url, iconPath, order }: LabCardProps) {
@@ -28,6 +31,9 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     lastChecked: null,
     lastHttp: null,
     latencyMs: null,
+    message: null,
+    failCount: 0,
+    nextCheckAt: null,
   })
   const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -115,7 +121,36 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     return new Date(lastChecked).toLocaleTimeString()
   }
 
-    return (
+  // Determine if status is stale (older than 120 seconds)
+  const isStatusStale = status.lastChecked ? 
+    (Date.now() - new Date(status.lastChecked).getTime()) > 120000 : true
+
+  // Get status color based on status and staleness
+  const getStatusColor = () => {
+    if (isStatusStale) return 'bg-gray-500' // Grey for stale status
+    if (status.isUp === null) return 'bg-gray-500' // Grey for unknown
+    return status.isUp ? 'bg-emerald-500' : 'bg-red-500' // Green for up, red for down
+  }
+
+  // Get status text
+  const getStatusText = () => {
+    if (isStatusStale) return 'Stale'
+    if (status.isUp === null) return 'Unknown'
+    return status.isUp ? 'Up' : 'Down'
+  }
+
+  // Create tooltip content
+  const getTooltipContent = () => {
+    const parts = []
+    if (status.lastHttp !== null) parts.push(`HTTP: ${status.lastHttp}`)
+    if (status.message) parts.push(`Message: ${status.message}`)
+    if (status.failCount > 0) parts.push(`Fail Count: ${status.failCount}`)
+    if (status.nextCheckAt) parts.push(`Next Check: ${new Date(status.nextCheckAt).toLocaleTimeString()}`)
+    
+    return parts.length > 0 ? parts.join('\n') : 'No additional information'
+  }
+
+  return (
     <div className="relative group">
       {/* Clickable overlay with fallback link */}
       <a 
@@ -169,10 +204,15 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
           {/* Status Indicators at Bottom */}
           <div className="mt-auto space-y-3 pt-4">
             <div className="flex items-center justify-between">
-              <StatusIndicator 
-                isUp={status.isUp} 
-                isRefreshing={isRefreshing}
-              />
+              <div className="flex items-center gap-2">
+                <div 
+                  className={`w-3 h-3 rounded-full ${getStatusColor()} ${isRefreshing ? 'animate-pulse' : ''}`}
+                  title={getTooltipContent()}
+                />
+                <span className={`text-xs font-medium ${isStatusStale ? 'text-gray-400' : status.isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {getStatusText()}
+                </span>
+              </div>
               
               {status.latencyMs !== null && (
                 <span className="text-sm font-medium text-slate-400 bg-slate-700/50 px-2 py-1 rounded-md">
@@ -184,6 +224,11 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
             {status.lastChecked && (
               <div className="text-xs text-slate-500 bg-slate-700/30 px-3 py-2 rounded-md">
                 Last checked: {formatLastChecked(status.lastChecked)}
+                {status.failCount > 0 && (
+                  <span className="ml-2 text-orange-400">
+                    (Failed {status.failCount} times)
+                  </span>
+                )}
               </div>
             )}
           </div>

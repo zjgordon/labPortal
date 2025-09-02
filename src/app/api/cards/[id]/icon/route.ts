@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
+import sharp from 'sharp'
+import { existsSync } from 'fs'
 
 // POST /api/cards/:id/icon - Upload card icon (protected)
 export async function POST(
@@ -43,11 +45,11 @@ export async function POST(
       )
     }
 
-    // Validate file type
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+    // Validate file type and size
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only PNG and JPEG are allowed.' },
+        { error: 'Invalid file type. Only PNG, JPEG, and WebP are allowed.' },
         { status: 400 }
       )
     }
@@ -65,15 +67,50 @@ export async function POST(
     const uploadsDir = join(process.cwd(), 'public', 'uploads')
     await mkdir(uploadsDir, { recursive: true })
 
-    // Determine file extension
-    const extension = file.type === 'image/png' ? 'png' : 'jpg'
-    const filename = `${id}.${extension}`
+    // Generate PNG filename
+    const filename = `${id}.png`
     const filepath = join(uploadsDir, filename)
 
-    // Convert file to buffer and save
+    // Convert file to buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filepath, buffer)
+
+    // Process image with Sharp: re-encode as PNG, strip EXIF, optimize
+    try {
+      const processedImage = await sharp(buffer)
+        .resize(128, 128, { 
+          fit: 'inside', 
+          withoutEnlargement: true,
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .png({ 
+          quality: 90,
+          compressionLevel: 9,
+          progressive: false
+        })
+        .toBuffer()
+
+      // Save processed PNG
+      await writeFile(filepath, processedImage)
+    } catch (sharpError) {
+      console.error('Sharp processing error:', sharpError)
+      return NextResponse.json(
+        { error: 'Failed to process image. Please ensure it\'s a valid image file.' },
+        { status: 400 }
+      )
+    }
+
+    // Clean up old icon if it exists and is different
+    if (card.iconPath && card.iconPath !== `/uploads/${filename}`) {
+      const oldIconPath = join(process.cwd(), 'public', card.iconPath.replace(/^\//, ''))
+      if (existsSync(oldIconPath)) {
+        try {
+          await unlink(oldIconPath)
+        } catch (cleanupError) {
+          console.warn('Failed to cleanup old icon:', cleanupError)
+        }
+      }
+    }
 
     // Update card with new icon path
     const iconPath = `/uploads/${filename}`

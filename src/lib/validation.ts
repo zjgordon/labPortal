@@ -56,12 +56,37 @@ export const descriptionSchema = z.string()
   .refine((val) => val.length > 0, "Description cannot be empty after trimming")
 
 /**
+ * Enhanced health path validation that allows:
+ * - Leading-slash relative paths (e.g., /health, /status)
+ * - Empty/null values (optional field)
+ */
+export const healthPathSchema = z.string()
+  .max(100, "Health path too long")
+  .optional()
+  .refine((path) => {
+    if (!path) return true // Optional field
+    // Must start with / and be a valid path
+    return path.startsWith('/') && path.length > 1
+  }, "Health path must start with / and be a valid path")
+
+/**
+ * Group validation schema
+ */
+export const groupSchema = z.string()
+  .min(1, "Group is required")
+  .max(50, "Group name too long")
+  .transform((val) => val.trim())
+  .refine((val) => val.length > 0, "Group cannot be empty after trimming")
+
+/**
  * Card creation schema
  */
 export const createCardSchema = z.object({
   title: titleSchema,
   description: descriptionSchema,
   url: urlSchema,
+  healthPath: healthPathSchema,
+  group: groupSchema.default("General"),
   isEnabled: z.boolean().default(true),
 })
 
@@ -72,8 +97,10 @@ export const updateCardSchema = z.object({
   title: titleSchema.optional(),
   description: descriptionSchema.optional(),
   url: urlSchema.optional(),
+  healthPath: healthPathSchema,
   iconPath: z.string().optional(),
   order: z.number().int().min(0, "Order must be non-negative").optional(),
+  group: groupSchema.optional(),
   isEnabled: z.boolean().optional(),
 })
 
@@ -84,6 +111,7 @@ export const reorderSchema = z.object({
   cards: z.array(z.object({
     id: z.string().min(1, "Card ID is required"),
     order: z.number().int().min(0, "Order must be non-negative"),
+    group: z.string().min(1, "Group is required"),
   })).min(1, "At least one card must be provided"),
 })
 

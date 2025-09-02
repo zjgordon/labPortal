@@ -7,7 +7,10 @@ export async function GET() {
   try {
     const cards = await prisma.card.findMany({
       where: { isEnabled: true },
-      orderBy: { order: 'asc' },
+      orderBy: [
+        { group: 'asc' },
+        { order: 'asc' }
+      ],
       include: {
         status: true,
       },
