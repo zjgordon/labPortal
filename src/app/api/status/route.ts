@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
     }
     
     const now = new Date()
-    const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000)
+    const tenSecondsAgo = new Date(now.getTime() - 10 * 1000) // Reduced from 30s to 10s for more responsive updates
     
-    // Check if we have recent status data (less than 30 seconds old)
-    if (card.status && card.status.lastChecked && card.status.lastChecked > thirtySecondsAgo) {
+    // Check if we have recent status data (less than 10 seconds old)
+    if (card.status && card.status.lastChecked && card.status.lastChecked > tenSecondsAgo) {
       // Return cached status
       return NextResponse.json({
         isUp: card.status.isUp,
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    // Probe the URL
-    const probeResult = await probeUrl(card.url, 3000)
+    // Probe the URL with a reasonable timeout
+    const probeResult = await probeUrl(card.url, 8000)
     
     // Update or create CardStatus
     const updatedStatus = await prisma.cardStatus.upsert({
@@ -69,12 +69,15 @@ export async function GET(request: NextRequest) {
       },
     })
     
+    // Log the status check result
+    console.log(`Status check for card ${card.title} (${card.url}): ${probeResult.isUp ? 'UP' : 'DOWN'} - ${probeResult.latencyMs}ms - ${probeResult.message}`)
+    
     // Return the status
     return NextResponse.json({
       isUp: updatedStatus.isUp,
       lastChecked: updatedStatus.lastChecked,
       lastHttp: updatedStatus.lastHttp,
-      latencyMs: updatedStatus.latencyMs,
+        latencyMs: updatedStatus.latencyMs,
     })
     
   } catch (error) {

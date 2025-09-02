@@ -1,6 +1,6 @@
 /**
  * Utility function to probe a URL and check if it's accessible
- * Uses fetch with AbortController for timeout handling
+ * Simple approach: if we get a 200 response, it's up
  */
 
 export interface ProbeResult {
@@ -10,73 +10,99 @@ export interface ProbeResult {
   message?: string
 }
 
-export async function probeUrl(url: string, timeoutMs: number = 3000): Promise<ProbeResult> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-  
+export async function probeUrl(url: string, timeoutMs: number = 5000): Promise<ProbeResult> {
   const startTime = Date.now()
   
   try {
-    // Try HEAD request first
+    // Parse the URL to determine protocol
+    let parsedUrl: URL
     try {
-      const headResponse = await fetch(url, {
-        method: 'HEAD',
-        signal: controller.signal,
-        // Add some basic headers to avoid being blocked
-        headers: {
-          'User-Agent': 'LabPortal/1.0',
-        },
-      })
-      
-      clearTimeout(timeoutId)
-      const latencyMs = Date.now() - startTime
-      
-      return {
-        isUp: headResponse.status >= 200 && headResponse.status < 400,
-        lastHttp: headResponse.status,
-        latencyMs,
+      parsedUrl = new URL(url)
+    } catch {
+      // If URL parsing fails, try to construct a valid URL
+      if (url.startsWith('/')) {
+        // Relative path - assume localhost
+        parsedUrl = new URL(`http://localhost${url}`)
+      } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        // No protocol - assume http
+        parsedUrl = new URL(`http://${url}`)
+      } else {
+        throw new Error('Invalid URL format')
       }
-    } catch (headError) {
-      // If HEAD fails, try GET
-      try {
-        const getResponse = await fetch(url, {
+    }
+
+    // Special handling for localhost URLs (common in lab environments)
+    if (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1') {
+      // For localhost, we'll use a shorter timeout and be more lenient
+      timeoutMs = Math.min(timeoutMs, 3000)
+    }
+
+    // Use appropriate module based on protocol
+    const httpModule = parsedUrl.protocol === 'https:' ? require('https') : require('http')
+    
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        const latencyMs = Date.now() - startTime
+        resolve({
+          isUp: false,
+          latencyMs,
+          message: `Request timeout after ${timeoutMs}ms`,
+        })
+      }, timeoutMs)
+
+      const request = httpModule.request(
+        {
+          hostname: parsedUrl.hostname,
+          port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+          path: parsedUrl.pathname + parsedUrl.search,
           method: 'GET',
-          signal: controller.signal,
+          timeout: timeoutMs,
           headers: {
             'User-Agent': 'LabPortal/1.0',
           },
-        })
-        
-        clearTimeout(timeoutId)
-        const latencyMs = Date.now() - startTime
-        
-        return {
-          isUp: getResponse.status >= 200 && getResponse.status < 400,
-          lastHttp: getResponse.status,
-          latencyMs,
+        },
+        (response: any) => {
+          clearTimeout(timeoutId)
+          const latencyMs = Date.now() - startTime
+          
+          // Simple logic: 200-399 means up, anything else means down
+          const isUp = response.statusCode >= 200 && response.statusCode < 400
+          
+          resolve({
+            isUp,
+            lastHttp: response.statusCode,
+            latencyMs,
+            message: `HTTP ${response.statusCode}`,
+          })
         }
-      } catch (getError) {
+      )
+
+      request.on('error', (error: any) => {
         clearTimeout(timeoutId)
         const latencyMs = Date.now() - startTime
         
-        return {
+        // Special handling for common localhost errors
+        let message = `Connection failed: ${error.message || 'Unknown error'}`
+        if (error.code === 'ECONNREFUSED') {
+          message = 'Connection refused - service not running'
+        } else if (error.code === 'ENOTFOUND') {
+          message = 'Host not found - check network configuration'
+        } else if (error.code === 'ETIMEDOUT') {
+          message = 'Connection timed out - service may be overloaded'
+        }
+        
+        resolve({
           isUp: false,
           latencyMs,
-          message: `GET request failed: ${getError instanceof Error ? getError.message : 'Unknown error'}`,
-        }
-      }
-    }
-  } catch (error) {
-    clearTimeout(timeoutId)
-    const latencyMs = Date.now() - startTime
+          message,
+        })
+      })
+
+      request.end()
+    })
     
-    if (error instanceof Error && error.name === 'AbortError') {
-      return {
-        isUp: false,
-        latencyMs,
-        message: `Request timeout after ${timeoutMs}ms`,
-      }
-    }
+  } catch (error) {
+    const latencyMs = Date.now() - startTime
     
     return {
       isUp: false,
