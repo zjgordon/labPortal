@@ -33,3 +33,11 @@ export function validateEnv() {
     return false
   }
 }
+
+/**
+ * Local action execution configuration
+ */
+export const LOCAL_ACTION_CONFIG = {
+  HOST_LOCAL_ID: process.env.HOST_LOCAL_ID || 'local',
+  ALLOW_SYSTEMCTL: process.env.ALLOW_SYSTEMCTL === 'true',
+} as const

@@ -65,6 +65,7 @@ model Card {
   healthPath  String?
   status      CardStatus?
   statusEvents StatusEvent[]
+  services    ManagedService[]
 }
 
 model CardStatus {
@@ -90,4 +91,49 @@ model StatusEvent {
   message   String?
   card      Card     @relation(fields: [cardId], references: [id])
   @@index([cardId, timestamp])
+}
+
+model Host {
+  id         String   @id @default(cuid())
+  name       String
+  address    String?
+  agentToken String?
+  lastSeenAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  services   ManagedService[]
+  actions    Action[]
+}
+
+model ManagedService {
+  id           String   @id @default(cuid())
+  cardId       String?
+  hostId       String
+  unitName     String
+  displayName  String
+  description  String?
+  allowStart   Boolean  @default(true)
+  allowStop    Boolean  @default(true)
+  allowRestart Boolean  @default(true)
+  host         Host     @relation(fields: [hostId], references: [id])
+  card         Card?    @relation(fields: [cardId], references: [id])
+  actions      Action[]
+  @@unique([hostId, unitName])
+}
+
+model Action {
+  id          String   @id @default(cuid())
+  hostId      String
+  serviceId   String
+  kind        String
+  status      String         @default("queued")
+  requestedBy String?
+  requestedAt DateTime @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  exitCode    Int?
+  message     String?
+  host        Host           @relation(fields: [hostId], references: [id])
+  service     ManagedService @relation(fields: [serviceId], references: [id])
+  @@index([hostId, status])
 }

@@ -94,6 +94,51 @@ async function main() {
   )
 
   console.log('Created statuses:', statuses)
+
+  // Clear existing hosts and services
+  await prisma.action.deleteMany()
+  await prisma.managedService.deleteMany()
+  await prisma.host.deleteMany()
+
+  // Create a local host
+  const localHost = await prisma.host.create({
+    data: {
+      name: 'local',
+      address: null,
+      agentToken: null,
+      lastSeenAt: null,
+    },
+  })
+
+  console.log('Created host:', localHost)
+
+  // Create managed services for the local host
+  const services = await Promise.all([
+    prisma.managedService.create({
+      data: {
+        hostId: localHost.id,
+        unitName: 'nginx.service',
+        displayName: 'Nginx Web Server',
+        description: 'High-performance web server and reverse proxy',
+        allowStart: true,
+        allowStop: true,
+        allowRestart: true,
+      },
+    }),
+    prisma.managedService.create({
+      data: {
+        hostId: localHost.id,
+        unitName: 'postgresql.service',
+        displayName: 'PostgreSQL Database',
+        description: 'Advanced open source relational database',
+        allowStart: true,
+        allowStop: true,
+        allowRestart: true,
+      },
+    }),
+  ])
+
+  console.log('Created services:', services)
 }
 
 main()
