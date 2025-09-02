@@ -13,6 +13,22 @@ export async function GET() {
       ],
       include: {
         status: true,
+        services: {
+          select: {
+            id: true,
+            unitName: true,
+            displayName: true,
+            allowStart: true,
+            allowStop: true,
+            allowRestart: true,
+            host: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     })
 

@@ -42,6 +42,18 @@ interface LabCardData {
   order: number
   isEnabled: boolean
   group: string
+  services?: Array<{
+    id: string
+    unitName: string
+    displayName: string
+    allowStart: boolean
+    allowStop: boolean
+    allowRestart: boolean
+    host: {
+      id: string
+      name: string
+    }
+  }>
 }
 
 /**
@@ -194,6 +206,7 @@ function LabCardsGrid() {
                 url={card.url}
                 iconPath={card.iconPath}
                 order={card.order}
+                services={card.services}
               />
             ))}
           </div>

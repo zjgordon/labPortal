@@ -5,222 +5,384 @@ import { createActionSchema } from '@/lib/validation'
 import { getServerSession } from 'next-auth'
 import { LOCAL_ACTION_CONFIG } from '@/lib/env'
 import { SystemctlExecutor } from '@/lib/systemctl-executor'
+import { controlActionsRateLimiter } from '@/lib/rate-limiter'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
-/**
- * POST /api/control/actions - Create a control action
- */
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    // Reject agent tokens on admin endpoints
     const agentRejection = await rejectAgentTokens(request)
     if (agentRejection) return agentRejection
     
-    // Check admin authentication
     const authError = await requireAdminAuth(request)
     if (authError) return authError
 
-    const body = await request.json()
-    
-    // Validate input
-    const validatedData = createActionSchema.parse(body)
-    
-    // Get the current session for requestedBy
-    const session = await getServerSession()
-    const requestedBy = session?.user?.email || 'admin@local'
-    
-    // Check if host exists
-    const host = await prisma.host.findUnique({
-      where: { id: validatedData.hostId }
+    const actions = await prisma.action.findMany({
+      include: {
+        host: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        service: {
+          select: {
+            id: true,
+            displayName: true,
+            unitName: true,
+          },
+        },
+      },
+      orderBy: {
+        requestedAt: 'desc',
+      },
     })
+
+    return NextResponse.json(actions)
+  } catch (error) {
+    console.error('Failed to fetch actions:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch actions' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const agentRejection = await rejectAgentTokens(request)
+    if (agentRejection) return agentRejection
     
+    const authError = await requireAdminAuth(request)
+    if (authError) return authError
+
+    // Get the session to identify who requested the action
+    const session = await getServerSession()
+    const requestedBy = session?.user?.email || 'unknown'
+    const userId = session?.user?.id || 'unknown'
+
+    // Rate limiting check - 10 actions per minute per admin
+    const rateLimitKey = `admin:${requestedBy}`
+    if (!controlActionsRateLimiter.isAllowed(rateLimitKey)) {
+      const remainingTime = controlActionsRateLimiter.getRemainingTime(rateLimitKey)
+      
+      logger.rateLimitExceeded(rateLimitKey, '/api/control/actions', 10)
+      
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Too many control actions.',
+          retryAfter: Math.ceil(remainingTime / 1000)
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': Math.ceil(remainingTime / 1000).toString(),
+            'X-RateLimit-Limit': '10',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': new Date(Date.now() + remainingTime).toISOString()
+          }
+        }
+      )
+    }
+
+    const body = await request.json()
+    const validatedData = createActionSchema.parse(body)
+
+    // Verify the host exists
+    const host = await prisma.host.findUnique({
+      where: { id: validatedData.hostId },
+    })
     if (!host) {
+      logger.securityEvent({
+        event: 'action_creation_failed',
+        userId,
+        userEmail: requestedBy,
+        resource: 'host',
+        action: 'create_action',
+        success: false,
+        message: `Host not found: ${validatedData.hostId}`
+      })
+      
       return NextResponse.json(
         { error: 'Host not found' },
-        { status: 400 }
+        { status: 404 }
       )
     }
-    
-    // Check if service exists and get its permissions
+
+    // Verify the service exists and belongs to the host
     const service = await prisma.managedService.findUnique({
       where: { id: validatedData.serviceId },
-      include: {
-        host: true
-      }
     })
-    
     if (!service) {
+      logger.securityEvent({
+        event: 'action_creation_failed',
+        userId,
+        userEmail: requestedBy,
+        resource: 'service',
+        action: 'create_action',
+        success: false,
+        message: `Service not found: ${validatedData.serviceId}`
+      })
+      
       return NextResponse.json(
         { error: 'Service not found' },
-        { status: 400 }
+        { status: 404 }
       )
     }
-    
-    // Verify the service belongs to the specified host
     if (service.hostId !== validatedData.hostId) {
+      logger.securityEvent({
+        event: 'action_creation_failed',
+        userId,
+        userEmail: requestedBy,
+        resource: 'service',
+        action: 'create_action',
+        success: false,
+        message: `Service ${validatedData.serviceId} does not belong to host ${validatedData.hostId}`
+      })
+      
       return NextResponse.json(
         { error: 'Service does not belong to the specified host' },
         { status: 400 }
       )
     }
-    
-    // Check if the action is allowed based on service permissions
-    switch (validatedData.kind) {
-      case 'start':
-        if (!service.allowStart) {
-          return NextResponse.json(
-            { error: 'Start action not allowed for this service' },
-            { status: 400 }
-          )
-        }
-        break
-      case 'stop':
-        if (!service.allowStop) {
-          return NextResponse.json(
-            { error: 'Stop action not allowed for this service' },
-            { status: 400 }
-          )
-        }
-        break
-      case 'restart':
-        if (!service.allowRestart) {
-          return NextResponse.json(
-            { error: 'Restart action not allowed for this service' },
-            { status: 400 }
-          )
-        }
-        break
-      default:
-        return NextResponse.json(
-          { error: 'Invalid action kind' },
-          { status: 400 }
-        )
+
+    // Check if the service allows this action
+    const actionKey = `allow${validatedData.kind.charAt(0).toUpperCase() + validatedData.kind.slice(1)}` as keyof typeof service
+    if (!service[actionKey]) {
+      logger.securityEvent({
+        event: 'action_creation_failed',
+        userId,
+        userEmail: requestedBy,
+        resource: 'service',
+        action: 'create_action',
+        success: false,
+        message: `${validatedData.kind} action not allowed for service ${service.displayName}`
+      })
+      
+      return NextResponse.json(
+        { error: `${validatedData.kind} action not allowed for this service` },
+        { status: 400 }
+      )
     }
-    
+
     // Create the action
     const action = await prisma.action.create({
       data: {
         hostId: validatedData.hostId,
         serviceId: validatedData.serviceId,
         kind: validatedData.kind,
-        status: 'queued',
+        status: validatedData.status,
         requestedBy,
-        requestedAt: new Date()
       },
       include: {
         host: {
           select: {
             id: true,
-            name: true
-          }
+            name: true,
+          },
         },
         service: {
           select: {
             id: true,
+            displayName: true,
             unitName: true,
-            displayName: true
-          }
-        }
-      }
+          },
+        },
+      },
     })
 
-    // Check if this is a local action that should be executed immediately
+    // Log action creation
+    logger.actionQueued({
+      actionId: action.id,
+      hostId: action.hostId,
+      hostName: action.host.name,
+      serviceId: action.serviceId,
+      serviceName: action.service.displayName,
+      action: action.kind,
+      status: action.status,
+      requestedBy: action.requestedBy || 'unknown'
+    })
+
+    // Log security event
+    logger.securityEvent({
+      event: 'action_created',
+      userId,
+      userEmail: requestedBy,
+      resource: 'action',
+      action: 'create_action',
+      success: true,
+      message: `Action ${action.kind} created for service ${action.service.displayName} on host ${action.host.name}`
+    })
+
+    // If this is a local action, execute it immediately
     if (validatedData.hostId === LOCAL_ACTION_CONFIG.HOST_LOCAL_ID) {
+      const startTime = Date.now()
+      
       try {
-        // Update action to running
+        
+        // Update status to running
         await prisma.action.update({
           where: { id: action.id },
-          data: {
+          data: { 
             status: 'running',
-            startedAt: new Date()
-          }
+            startedAt: new Date(),
+          },
         })
 
-        // Execute the systemctl command
-        const allowSystemctl = LOCAL_ACTION_CONFIG.ALLOW_SYSTEMCTL && 
-          SystemctlExecutor.isSystemService(service.unitName)
-        
+        // Log action started
+        logger.actionStarted({
+          actionId: action.id,
+          hostId: action.hostId,
+          hostName: action.host.name,
+          serviceId: action.serviceId,
+          serviceName: action.service.displayName,
+          action: action.kind,
+          status: 'running',
+          requestedBy: action.requestedBy || 'unknown'
+        })
+
+        // Execute the command
         const result = await SystemctlExecutor.execute(
-          validatedData.kind,
+          validatedData.kind as any,
           service.unitName,
-          allowSystemctl
+          LOCAL_ACTION_CONFIG.ALLOW_SYSTEMCTL
         )
 
-        // Update action with results
-        const finalStatus = result.success ? 'completed' : 'failed'
-        const updatedAction = await prisma.action.update({
+        const durationMs = Date.now() - startTime
+        const finalStatus = result.success ? 'succeeded' : 'failed'
+
+        // Update with results
+        await prisma.action.update({
           where: { id: action.id },
           data: {
             status: finalStatus,
             finishedAt: new Date(),
             exitCode: result.exitCode,
-            message: result.message
+            message: result.message,
           },
+        })
+
+        // Log action completion
+        if (result.success) {
+          logger.actionCompleted({
+            actionId: action.id,
+            hostId: action.hostId,
+            hostName: action.host.name,
+            serviceId: action.serviceId,
+            serviceName: action.service.displayName,
+            action: action.kind,
+            status: finalStatus,
+            exitCode: result.exitCode,
+            durationMs,
+            message: result.message,
+            requestedBy: action.requestedBy || 'unknown'
+          })
+        } else {
+          logger.actionFailed({
+            actionId: action.id,
+            hostId: action.hostId,
+            hostName: action.host.name,
+            serviceId: action.serviceId,
+            serviceName: action.service.displayName,
+            action: action.kind,
+            status: finalStatus,
+            exitCode: result.exitCode,
+            durationMs,
+            message: result.message,
+            requestedBy: action.requestedBy || 'unknown'
+          })
+        }
+
+        // Return the updated action
+        const updatedAction = await prisma.action.findUnique({
+          where: { id: action.id },
           include: {
             host: {
               select: {
                 id: true,
-                name: true
-              }
+                name: true,
+              },
             },
             service: {
               select: {
                 id: true,
+                displayName: true,
                 unitName: true,
-                displayName: true
-              }
-            }
-          }
+              },
+            },
+          },
         })
 
         return NextResponse.json(updatedAction, { status: 201 })
-      } catch (error) {
-        // If execution fails, mark action as failed
-        console.error('Error executing local action:', error)
-        const failedAction = await prisma.action.update({
+      } catch (executionError) {
+        const durationMs = Date.now() - startTime
+        
+        console.error('Local action execution failed:', executionError)
+        
+        // Update action as failed
+        await prisma.action.update({
           where: { id: action.id },
           data: {
             status: 'failed',
             finishedAt: new Date(),
             exitCode: -1,
-            message: `Failed to execute action: ${error instanceof Error ? error.message : 'Unknown error'}`
+            message: `Local execution failed: ${executionError instanceof Error ? executionError.message : String(executionError)}`,
           },
+        })
+
+        // Log action failure
+        logger.actionFailed({
+          actionId: action.id,
+          hostId: action.hostId,
+          hostName: action.host.name,
+          serviceId: action.serviceId,
+          serviceName: action.service.displayName,
+          action: action.kind,
+          status: 'failed',
+          exitCode: -1,
+          durationMs,
+          message: `Local execution failed: ${executionError instanceof Error ? executionError.message : String(executionError)}`,
+          requestedBy: action.requestedBy || 'unknown'
+        })
+
+        // Return the failed action
+        const failedAction = await prisma.action.findUnique({
+          where: { id: action.id },
           include: {
             host: {
               select: {
                 id: true,
-                name: true
-              }
+                name: true,
+              },
             },
             service: {
               select: {
                 id: true,
+                displayName: true,
                 unitName: true,
-                displayName: true
-              }
-            }
-          }
+              },
+            },
+          },
         })
 
         return NextResponse.json(failedAction, { status: 201 })
       }
     }
 
-    // Return the queued action for remote hosts
     return NextResponse.json(action, { status: 201 })
   } catch (error) {
-    console.error('Error creating control action:', error)
+    console.error('Failed to create action:', error)
     
-    if (error instanceof Error && error.name === 'ZodError') {
+    if (error instanceof Error && error.message.includes('validation')) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.message },
+        { error: error.message },
         { status: 400 }
       )
     }
-    
+
     return NextResponse.json(
-      { error: 'Failed to create control action' },
+      { error: 'Failed to create action' },
       { status: 500 }
     )
   }

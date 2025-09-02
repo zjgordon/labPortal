@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusIndicator } from "@/components/status-indicator"
 import { Sparkline } from "@/components/sparkline"
-import { ExternalLink, Monitor } from "lucide-react"
+import { ExternalLink, Monitor, MoreVertical, Play, Square, RotateCcw } from "lucide-react"
 import Image from "next/image"
+import { useSession } from "next-auth/react"
+import { useToast } from "@/hooks/use-toast"
 
 export interface LabCardProps {
   id: string
@@ -14,6 +16,18 @@ export interface LabCardProps {
   url: string
   iconPath?: string | null
   order: number
+  services?: Array<{
+    id: string
+    unitName: string
+    displayName: string
+    allowStart: boolean
+    allowStop: boolean
+    allowRestart: boolean
+    host: {
+      id: string
+      name: string
+    }
+  }>
 }
 
 interface CardStatus {
@@ -43,7 +57,9 @@ interface StatusHistory {
  * - Cyberpunk-themed styling with glow effects
  * - Status staleness detection and visual feedback
  */
-export function LabCard({ id, title, description, url, iconPath, order }: LabCardProps) {
+export function LabCard({ id, title, description, url, iconPath, order, services }: LabCardProps) {
+  const { data: session } = useSession()
+  const { toast } = useToast()
   const [status, setStatus] = useState<CardStatus>({
     isUp: null,
     lastChecked: null,
@@ -57,6 +73,8 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
   const [history, setHistory] = useState<StatusHistory | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [isControlOpen, setIsControlOpen] = useState(false)
+  const [isExecutingAction, setIsExecutingAction] = useState(false)
 
   /**
    * Fetches the current status for this lab tool card
@@ -238,6 +256,74 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     return parts.length > 0 ? parts.join('\n') : 'No additional information'
   }
 
+  /**
+   * Executes a control action on a linked service
+   * @param serviceId - The service ID to control
+   * @param hostId - The host ID where the service runs
+   * @param action - The action to perform (start/stop/restart)
+   */
+  const executeControlAction = async (serviceId: string, hostId: string, action: 'start' | 'stop' | 'restart') => {
+    if (isExecutingAction) return
+    
+    setIsExecutingAction(true)
+    try {
+      const response = await fetch('/api/control/actions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          hostId,
+          serviceId,
+          kind: action,
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        toast({
+          title: "Action Enqueued",
+          description: `${action.charAt(0).toUpperCase() + action.slice(1)} action for ${title} has been queued successfully.`,
+        })
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Action Failed",
+          description: error.error || `Failed to enqueue ${action} action.`,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error(`Failed to execute ${action} action:`, error)
+      toast({
+        title: "Action Failed",
+        description: `Failed to execute ${action} action. Please try again.`,
+        variant: "destructive",
+      })
+    } finally {
+      setIsExecutingAction(false)
+      setIsControlOpen(false)
+    }
+  }
+
+  // Check if user is admin and has linked services
+  const isAdmin = session?.user?.email === 'admin@local'
+  const hasLinkedServices = services && services.length > 0
+
+  // Close control dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isControlOpen) {
+        setIsControlOpen(false)
+      }
+    }
+
+    if (isControlOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isControlOpen])
+
   return (
     <div className="relative group">
       {/* Clickable overlay with fallback link */}
@@ -279,8 +365,87 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
             {title}
           </CardTitle>
 
-          {/* External Link Icon (top right) */}
-          <ExternalLink className="w-5 h-5 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-4" />
+          {/* Control Dropdown (top right) - Only for admin users with linked services */}
+          {isAdmin && hasLinkedServices && (
+            <div className="absolute top-4 right-4 z-20">
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setIsControlOpen(!isControlOpen)
+                  }}
+                  className="p-1 rounded-md bg-slate-700/80 hover:bg-slate-600/80 transition-colors text-slate-300 hover:text-slate-100"
+                  title="Control Services"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+                
+                {isControlOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-slate-800 border border-slate-600 rounded-md shadow-lg z-30">
+                    <div className="py-1">
+                      {services?.map((service) => (
+                        <div key={service.id} className="px-3 py-2 border-b border-slate-700 last:border-b-0">
+                          <div className="text-xs text-slate-400 mb-2 font-medium">
+                            {service.displayName}
+                          </div>
+                          <div className="flex gap-1">
+                            {service.allowStart && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  executeControlAction(service.id, service.host.id, 'start')
+                                }}
+                                disabled={isExecutingAction}
+                                className="flex-1 px-2 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 rounded text-white transition-colors flex items-center justify-center gap-1"
+                              >
+                                <Play className="w-3 h-3" />
+                                Start
+                              </button>
+                            )}
+                            {service.allowStop && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  executeControlAction(service.id, service.host.id, 'stop')
+                                }}
+                                disabled={isExecutingAction}
+                                className="flex-1 px-2 py-1 text-xs bg-red-600 hover:bg-red-500 disabled:bg-slate-600 rounded text-white transition-colors flex items-center justify-center gap-1"
+                              >
+                                <Square className="w-3 h-3" />
+                                Stop
+                              </button>
+                            )}
+                            {service.allowRestart && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  executeControlAction(service.id, service.host.id, 'restart')
+                                }}
+                                disabled={isExecutingAction}
+                                className="flex-1 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 rounded text-white transition-colors flex items-center justify-center gap-1"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                Restart
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* External Link Icon (top right) - Only when no control dropdown */}
+          {(!isAdmin || !hasLinkedServices) && (
+            <ExternalLink className="w-5 h-5 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-4" />
+          )}
         </CardHeader>
         
         <CardContent className="pt-0 flex-1 flex flex-col">

@@ -15,7 +15,10 @@ async function main() {
 
   console.log({ user })
 
-  // Clear existing cards and statuses
+  // Clear existing data in the correct order
+  await prisma.action.deleteMany()
+  await prisma.managedService.deleteMany()
+  await prisma.statusEvent.deleteMany()
   await prisma.cardStatus.deleteMany()
   await prisma.card.deleteMany()
 
@@ -123,6 +126,7 @@ async function main() {
         allowStart: true,
         allowStop: true,
         allowRestart: true,
+        cardId: cards[0].id, // Link to the first card (Grafana)
       },
     }),
     prisma.managedService.create({
@@ -134,6 +138,7 @@ async function main() {
         allowStart: true,
         allowStop: true,
         allowRestart: true,
+        cardId: cards[1].id, // Link to the second card (Gitea)
       },
     }),
   ])

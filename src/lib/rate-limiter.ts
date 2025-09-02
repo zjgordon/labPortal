@@ -7,6 +7,7 @@
  * - Configurable time windows and request limits
  * - Automatic cleanup of expired entries
  * - IP-based rate limiting
+ * - Admin-specific rate limiting
  * - Remaining time calculation
  */
 
@@ -70,6 +71,12 @@ class RateLimiter {
     if (!entry) return 0
     return Math.max(0, entry.resetTime - Date.now())
   }
+
+  getRemainingRequests(identifier: string): number {
+    const entry = this.limits.get(identifier)
+    if (!entry) return this.config.maxRequests
+    return Math.max(0, this.config.maxRequests - entry.count)
+  }
 }
 
 // Create rate limiters for different endpoints
@@ -81,4 +88,10 @@ export const statusRateLimiter = new RateLimiter({
 export const authRateLimiter = new RateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 5, // 5 attempts per 15 minutes
+})
+
+// Control actions rate limiter - 10 actions per minute per admin
+export const controlActionsRateLimiter = new RateLimiter({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 10, // 10 actions per minute per admin
 })
