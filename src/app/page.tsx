@@ -46,104 +46,47 @@ async function LabCardsGrid() {
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-slate-900 text-slate-100">
+      <div className="container mx-auto px-6 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-foreground mb-4">
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-bold text-slate-100 mb-6 tracking-tight">
             Lab Portal
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
+          <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-8 leading-relaxed">
             Portal and control plane for local network laboratories
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <Link href="/admin/login">
-              <Button variant="outline">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Admin Panel
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Tools
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                <Suspense fallback={<span className="animate-pulse">...</span>}>
-                  {/* This will be populated by the grid component */}
-                  <span>—</span>
-                </Suspense>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                Live
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Real-time monitoring
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Last Updated
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {new Date().toLocaleTimeString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Auto-refresh every 30s
-              </p>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Lab Tools Grid */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-foreground">
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="text-4xl font-bold text-slate-100 tracking-tight">
               Lab Tools
             </h2>
-            <div className="text-sm text-muted-foreground">
-              Click any card to open the tool
+            <div className="text-sm text-slate-400 bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
+              Click any card to access tools
             </div>
           </div>
           
           <Suspense fallback={
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-muted rounded" />
-                      <div className="flex-1">
-                        <div className="h-5 bg-muted rounded mb-2" />
-                        <div className="h-4 bg-muted rounded w-3/4" />
-                      </div>
+                <Card key={i} className="animate-pulse h-full bg-slate-800 border-slate-700">
+                  <CardHeader className="pb-4 text-center">
+                    {/* Centered Icon */}
+                    <div className="flex justify-center mb-4">
+                      <div className="w-16 h-16 bg-slate-700 rounded-lg" />
                     </div>
+                    {/* Centered Title */}
+                    <div className="h-6 bg-slate-700 rounded mb-2" />
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="h-4 bg-muted rounded mb-4" />
-                    <div className="h-4 bg-muted rounded w-1/2" />
+                    <div className="space-y-3 text-center">
+                      <div className="h-4 bg-slate-700 rounded" />
+                      <div className="h-4 bg-slate-700 rounded w-3/4 mx-auto" />
+                      <div className="h-4 bg-slate-700 rounded w-1/2 mx-auto" />
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -153,14 +96,31 @@ export default function HomePage() {
           </Suspense>
         </div>
 
-        {/* Footer */}
-        <div className="text-center text-sm text-muted-foreground border-t pt-8">
-          <p>
-            Lab Portal v1.0 • Built with Next.js, Tailwind CSS, and shadcn/ui
-          </p>
-          <p className="mt-1">
-            Status updates every 30 seconds • Click cards to access tools
-          </p>
+        {/* Footer with Status Info */}
+        <div className="border-t border-slate-700 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            {/* Admin Panel Button - Left of Status Widget */}
+            <Link href="/admin/login">
+              <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-slate-100">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Admin
+              </Button>
+            </Link>
+            
+            {/* Status Info - Bottom Right */}
+            <div className="text-xs text-slate-500 bg-slate-800/50 px-4 py-3 rounded-lg border border-slate-700/50 backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <span>System Live</span>
+                </div>
+                <div className="text-slate-600">•</div>
+                <div>
+                  Last: {new Date().toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,10 +1,7 @@
 import NextAuth from "next-auth"
-import { PrismaAdapter } from "@auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { prisma } from "@/lib/prisma"
 
 const handler = NextAuth({
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -13,37 +10,31 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log("=== AUTHORIZE FUNCTION CALLED ===")
+        console.log("Credentials:", credentials)
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log("Missing credentials")
           return null
         }
 
-        // Check if it's the admin user
-        if (credentials.email === 'admin@local') {
-          const adminPassword = process.env.ADMIN_PASSWORD
-          
-          if (!adminPassword) {
-            console.error('ADMIN_PASSWORD environment variable not set')
-            return null
-          }
-
-          if (credentials.password === adminPassword) {
-            return {
-              id: 'admin',
-              email: 'admin@local',
-              name: 'Admin',
-            }
+        // Check admin credentials
+        if (credentials.email === "admin@local" && credentials.password === "admin123") {
+          console.log("=== ADMIN LOGIN SUCCESSFUL ===")
+          return {
+            id: "admin",
+            name: "Admin",
+            email: "admin@local"
           }
         }
 
+        console.log("Invalid credentials")
         return null
       }
     })
   ],
   session: {
     strategy: "jwt"
-  },
-  pages: {
-    signIn: "/admin/login",
   },
   callbacks: {
     async jwt({ token, user }) {

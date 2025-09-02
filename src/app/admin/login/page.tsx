@@ -4,69 +4,37 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { signIn, useSession } from 'next-auth/react'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useToast } from '@/hooks/use-toast'
 
 export default function AdminLoginPage() {
-  const { data: session, status } = useSession()
-  const [email, setEmail] = useState('admin@local')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
-  const router = useRouter()
+  const [error, setError] = useState('')
 
-  // Redirect if already authenticated
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (session) {
-    router.push('/admin')
-    return null
-  }
-
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
 
-    try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        toast({
-          title: "Authentication Error",
-          description: "Invalid credentials. Please try again.",
-          variant: "destructive",
-        })
-      } else {
-        toast({
-          title: "Success",
-          description: "Successfully signed in as admin!",
-        })
-        router.push('/admin')
+    // Simple password check
+    if (password === 'admin123') {
+      try {
+        // Set authentication in localStorage
+        localStorage.setItem('admin-authenticated', 'true')
+        localStorage.setItem('admin-login-time', Date.now().toString())
+        
+        // Redirect to admin dashboard
+        window.location.href = '/admin'
+        
+      } catch (error) {
+        setError('An error occurred during login. Please try again.')
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
+    } else {
+      setError('Incorrect password. Please try again.')
+      setPassword('')
     }
+    
+    setIsLoading(false)
   }
 
   return (
@@ -74,52 +42,45 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Admin Login
+            Admin Access
           </h1>
           <p className="text-muted-foreground">
-            Sign in to access the admin panel
+            Enter the admin password to configure the portal
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Admin Access</CardTitle>
+            <CardTitle>Portal Configuration</CardTitle>
             <CardDescription>
-              Enter your admin credentials
+              Enter your admin password to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSignIn} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  readOnly
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Admin Password</Label>
                 <Input 
                   id="password" 
                   type="password" 
-                  placeholder="Enter admin password"
+                  placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoFocus
                 />
               </div>
+              
+              {error && (
+                <div className="text-sm text-red-600 bg-red-50 p-3 rounded border">
+                  {error}
+                </div>
+              )}
+              
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? "Checking..." : "Access Configuration"}
               </Button>
             </form>
-            <div className="mt-4 text-xs text-muted-foreground text-center">
-              <p>Admin email is fixed as: admin@local</p>
-              <p>Password is set via ADMIN_PASSWORD environment variable</p>
-            </div>
           </CardContent>
         </Card>
       </div>

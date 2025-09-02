@@ -57,7 +57,13 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
   }, [fetchStatus])
 
   const handleCardClick = () => {
-    window.open(url, '_blank', 'noopener,noreferrer')
+    console.log('Card clicked!', { title, url, id })
+    if (url) {
+      console.log('Opening URL:', url)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } else {
+      console.error('No URL provided for card:', title)
+    }
   }
 
   const formatLatency = (latencyMs: number | null) => {
@@ -67,68 +73,65 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
   }
 
   return (
-    <Card 
-      className="group cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+    <div 
+      className="cursor-pointer"
       onClick={handleCardClick}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+      <Card className="group transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] h-full flex flex-col bg-slate-800 border-slate-700 text-slate-100 hover:border-slate-600">
+        <CardHeader className="pb-4 text-center">
+          {/* Centered Icon */}
+          <div className="flex justify-center mb-4">
             {iconPath ? (
               <img 
                 src={iconPath} 
                 alt={`${title} icon`}
-                className="w-8 h-8 object-contain"
-                onError={(e) => {
-                  // Fallback to default icon if image fails to load
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                  target.nextElementSibling?.classList.remove('hidden')
-                }}
+                className="w-16 h-16 object-contain rounded-lg bg-slate-700/50 p-2 group-hover:bg-slate-600/50 transition-colors"
               />
-            ) : null}
-            <div className={cn(iconPath ? "hidden" : "", "w-8 h-8")}>
-              <Monitor className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">
-                {title}
-              </CardTitle>
-            </div>
+            ) : (
+              <div className="w-16 h-16 bg-slate-700/50 rounded-lg p-2 flex items-center justify-center group-hover:bg-slate-600/50 transition-colors">
+                <Monitor className="w-10 h-10 text-slate-400" />
+              </div>
+            )}
           </div>
-          <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0">
-        <CardDescription className="text-sm text-muted-foreground mb-4 line-clamp-2">
-          {description}
-        </CardDescription>
-        
-        <div className="flex items-center justify-between">
-          <StatusIndicator 
-            isUp={status.isUp} 
-            isRefreshing={isRefreshing}
-          />
-          
-          {status.latencyMs !== null && (
-            <span className="text-xs text-muted-foreground">
-              {formatLatency(status.latencyMs)}
-            </span>
-          )}
-        </div>
-        
-        {status.lastChecked && (
-          <div className="mt-2 text-xs text-muted-foreground">
-            Last checked: {new Date(status.lastChecked).toLocaleTimeString()}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
 
-// Helper function for conditional classes
-function cn(...classes: (string | undefined | null | false)[]): string {
-  return classes.filter(Boolean).join(' ')
-}
+          {/* Centered Title */}
+          <CardTitle className="text-xl font-semibold leading-tight group-hover:text-emerald-400 transition-colors mb-2">
+            {title}
+          </CardTitle>
+
+          {/* External Link Icon (top right) */}
+          <ExternalLink className="w-5 h-5 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-4" />
+        </CardHeader>
+        
+        <CardContent className="pt-0 flex-1 flex flex-col">
+          {/* Centered Description */}
+          <CardDescription className="text-sm text-slate-400 leading-relaxed flex-1 text-center px-2">
+            {description}
+          </CardDescription>
+          
+          {/* Status Indicators at Bottom */}
+          <div className="mt-auto space-y-3 pt-4">
+            <div className="flex items-center justify-between">
+              <StatusIndicator 
+                isUp={status.isUp} 
+                isRefreshing={isRefreshing}
+              />
+              
+              {status.latencyMs !== null && (
+                <span className="text-sm font-medium text-slate-400 bg-slate-700/50 px-2 py-1 rounded-md">
+                  {formatLatency(status.latencyMs)}
+                </span>
+              )}
+            </div>
+            
+            {status.lastChecked && (
+              <div className="text-xs text-slate-500 bg-slate-700/30 px-3 py-2 rounded-md">
+                Last checked: {new Date(status.lastChecked).toLocaleTimeString()}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+} 
