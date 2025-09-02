@@ -35,15 +35,16 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     failCount: 0,
     nextCheckAt: null,
   })
+
+
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const fetchStatus = useCallback(async () => {
+  const fetchStatus = async () => {
     try {
       setIsRefreshing(true)
       const response = await fetch(`/api/status?cardId=${id}`)
       if (response.ok) {
         const data = await response.json()
-        console.log(`Status update for ${title}:`, data)
         setStatus(data)
       } else {
         console.error(`Status check failed for card ${id}:`, response.status)
@@ -53,23 +54,20 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
     } finally {
       setIsRefreshing(false)
     }
-  }, [id, title])
+  }
 
   // Initial status fetch
   useEffect(() => {
-    console.log(`Initial status fetch for card: ${title}`)
     fetchStatus()
-  }, [id, title])
+  }, []) // Empty dependency array - only run on mount
 
   // Polling every 30 seconds
   useEffect(() => {
-    console.log(`Setting up polling for card: ${title}`)
     const interval = setInterval(fetchStatus, 30000)
     return () => {
-      console.log(`Cleaning up polling for card: ${title}`)
       clearInterval(interval)
     }
-  }, [id, title])
+  }, []) // Empty dependency array - only run on mount
 
   const handleCardClick = () => {
     if (url && url.trim() !== '') {
@@ -122,19 +120,38 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
   }
 
   // Determine if status is stale (older than 120 seconds)
-  const isStatusStale = status.lastChecked ? 
-    (Date.now() - new Date(status.lastChecked).getTime()) > 120000 : true
+  const isStatusStale = () => {
+    if (!status.lastChecked) return true
+    
+    try {
+      const lastCheckedTime = new Date(status.lastChecked).getTime()
+      if (isNaN(lastCheckedTime)) {
+        console.warn(`Invalid lastChecked date for ${title}:`, status.lastChecked)
+        return true
+      }
+      
+      const timeDiff = Date.now() - lastCheckedTime
+      const isStale = timeDiff > 120000 // 2 minutes
+      
+
+      
+      return isStale
+    } catch (error) {
+      console.error(`Error parsing lastChecked date for ${title}:`, error, status.lastChecked)
+      return true
+    }
+  }
 
   // Get status color based on status and staleness
   const getStatusColor = () => {
-    if (isStatusStale) return 'bg-gray-500' // Grey for stale status
+    if (isStatusStale()) return 'bg-gray-500' // Grey for stale status
     if (status.isUp === null) return 'bg-gray-500' // Grey for unknown
     return status.isUp ? 'bg-emerald-500' : 'bg-red-500' // Green for up, red for down
   }
 
   // Get status text
   const getStatusText = () => {
-    if (isStatusStale) return 'Stale'
+    if (isStatusStale()) return 'Stale'
     if (status.isUp === null) return 'Unknown'
     return status.isUp ? 'Up' : 'Down'
   }
@@ -209,7 +226,7 @@ export function LabCard({ id, title, description, url, iconPath, order }: LabCar
                   className={`w-3 h-3 rounded-full ${getStatusColor()} ${isRefreshing ? 'animate-pulse' : ''}`}
                   title={getTooltipContent()}
                 />
-                <span className={`text-xs font-medium ${isStatusStale ? 'text-gray-400' : status.isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`text-xs font-medium ${isStatusStale() ? 'text-gray-400' : status.isUp ? 'text-emerald-400' : 'text-red-400'}`}>
                   {getStatusText()}
                 </span>
               </div>
