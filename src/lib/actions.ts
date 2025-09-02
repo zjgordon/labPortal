@@ -10,13 +10,17 @@ export interface Card {
   iconPath: string | null
   order: number
   isEnabled: boolean
+  group: string
 }
 
 export async function getEnabledCards(): Promise<Card[]> {
   try {
     const cards = await prisma.card.findMany({
       where: { isEnabled: true },
-      orderBy: { order: 'asc' },
+      orderBy: [
+        { group: 'asc' },
+        { order: 'asc' }
+      ],
       select: {
         id: true,
         title: true,
@@ -25,6 +29,7 @@ export async function getEnabledCards(): Promise<Card[]> {
         iconPath: true,
         order: true,
         isEnabled: true,
+        group: true,
       },
     })
     
