@@ -9,6 +9,51 @@ A modern, cyberpunk-styled laboratory control panel and **control plane** built 
 ![NextAuth](https://img.shields.io/badge/NextAuth-4.24-000000?style=for-the-badge&logo=next.js)
 ![Jest](https://img.shields.io/badge/Jest-30.1-C21325?style=for-the-badge&logo=jest)
 
+[![CI](https://github.com/zjgordon/labPortal/actions/workflows/ci.yml/badge.svg)](https://github.com/zjgordon/labPortal/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/zjgordon/labPortal/actions/workflows/codeql.yml/badge.svg)](https://github.com/zjgordon/labPortal/actions/workflows/codeql.yml)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+
+## 📁 Repository Structure
+
+```
+labPortal/
+├── 📁 agent/                 # Agent system for remote execution
+│   ├── 📁 src/              # TypeScript source code
+│   ├── 📁 dist/             # Compiled JavaScript
+│   └── 📁 install/          # Installation scripts
+├── 📁 docs/                  # Comprehensive documentation
+│   ├── 📁 agent/            # Agent system docs
+│   ├── 📁 api/              # API reference
+│   ├── 📁 architecture/     # System design docs
+│   ├── 📁 dev/              # Development guides
+│   └── 📁 ops/              # Operations & deployment
+├── 📁 prisma/                # Database schema & migrations
+│   └── 📁 migrations/       # Database migration files
+├── 📁 public/                # Static assets
+│   ├── 📁 icons/            # Application icons
+│   └── 📁 uploads/          # User uploads
+├── 📁 scripts/               # Utility scripts
+├── 📁 src/                   # Main application source
+│   ├── 📁 app/              # Next.js app router
+│   │   ├── 📁 admin/        # Admin panel routes
+│   │   ├── 📁 api/          # API endpoints
+│   │   └── 📁 __tests__/    # App-level tests
+│   ├── 📁 components/       # React components
+│   │   └── 📁 ui/           # UI component library
+│   ├── 📁 hooks/            # Custom React hooks
+│   ├── 📁 lib/              # Utility libraries
+│   │   ├── 📁 auth/         # Authentication logic
+│   │   ├── 📁 control/      # Control plane logic
+│   │   └── 📁 status/       # Status monitoring
+│   └── 📁 types/            # TypeScript type definitions
+├── 📁 tests/                 # Test utilities & configuration
+├── 📁 .github/               # GitHub templates & workflows
+│   ├── 📁 ISSUE_TEMPLATE/   # Issue templates
+│   └── 📁 workflows/        # CI/CD workflows
+├── 📁 .husky/                # Git hooks for pre-commit checks
+└── 📁 prisma/                # Database configuration
+```
+
 ## ✨ Features
 
 ### 🎯 Core Functionality
@@ -134,477 +179,6 @@ The `/api/control/queue` endpoint supports long-polling:
 - **Key Format**: UUID v4 recommended for global uniqueness
 - **Expiration**: Keys expire after 90 days for automatic cleanup
 
-## 🏗️ Repository Structure
-
-The Lab Portal follows a clean, professional repository structure:
-
-```
-labPortal/
-├── 📁 src/                    # Source code
-│   ├── app/                   # Next.js App Router
-│   │   ├── api/              # API routes
-│   │   ├── admin/            # Admin interface
-│   │   └── globals.css       # Global styles
-│   ├── components/            # React components
-│   ├── hooks/                 # Custom React hooks
-│   └── lib/                   # Utility libraries
-│       ├── auth/              # Authentication system
-│       ├── control/           # Control plane logic
-│       ├── status/            # Status monitoring
-│       └── utils/             # General utilities
-├── 📁 docs/                   # Organized documentation
-│   ├── architecture/          # System design docs
-│   ├── api/                   # API reference
-│   ├── agent/                 # Agent system docs
-│   ├── ops/                   # Operations docs
-│   ├── dev/                   # Development docs
-│   └── index.md               # Documentation landing page
-├── 📁 agent/                  # Agent system code
-│   ├── src/                   # Agent source code
-│   ├── package.json           # Agent dependencies
-│   └── README.md              # Agent documentation
-├── 📁 scripts/                # Utility and testing scripts
-│   ├── control-smoke.sh       # Control actions testing
-│   ├── test-public-api.sh     # Public API testing
-│   └── check-links.js         # Documentation link checker
-├── 📁 tests/                  # Testing framework
-│   └── README.md              # Testing guidelines
-├── 📁 prisma/                 # Database schema and migrations
-├── 📁 public/                 # Static assets and uploads
-├── 📄 README.md               # Project overview
-├── 📄 PROJECT_STATUS.md       # Development status
-├── 📄 .nvmrc                  # Node.js version (20.x)
-├── 📄 .editorconfig           # Editor configuration
-└── 📄 .gitattributes          # Git file handling
-```
-
-### Key Directories
-- **`src/`**: Main application source code with organized lib structure
-- **`docs/`**: Professional documentation organized by topic
-- **`agent/`**: Complete agent system for remote execution
-- **`scripts/`**: Testing, automation, and utility scripts
-- **`tests/`**: Testing framework and guidelines
-- **`prisma/`**: Database schema and migrations
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 20.x (see .nvmrc)
-- npm or yarn
-- Docker (optional, for containerized deployment)
-
-### 1. Clone & Setup
-```bash
-git clone <your-repo-url>
-cd labPortal
-chmod +x setup.sh
-./setup.sh
-```
-
-### 2. Start Development Server
-```bash
-npm run dev
-```
-
-### 3. Open Your Browser
-Navigate to [http://localhost:3000](http://localhost:3000)
-
-## 🛠️ Manual Setup
-
-### 1. Install Dependencies
-```bash
-npm install
-```
-
-### 2. Environment Configuration
-Create a `.env.local` file:
-```env
-# Database
-DATABASE_URL="file:./dev.db"
-
-# NextAuth
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key-here"
-
-# Admin Access
-ADMIN_PASSWORD="your-admin-password"
-
-# Portal Configuration
-PUBLIC_BASE_URL="http://localhost:3000"
-```
-
-### 3. Database Setup
-```bash
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:seed
-```
-
-### 4. Start Development
-```bash
-npm run dev
-```
-
-## 📱 Usage
-
-### Main Portal
-- **View Lab Tools** - See all available services with real-time status
-- **Quick Access** - Click any card to open the service in a new tab
-- **Status Monitoring** - Live indicators show if services are up/down
-
-### Admin Panel
-- **Access**: Navigate to `/admin/login` and enter your admin password
-- **Manage Cards**: Add, edit, delete, and reorder lab tool cards
-- **Upload Icons**: Customize each tool with unique icons
-- **Enable/Disable**: Control which tools are visible to users
-- **Import/Export**: Bulk import and export card configurations as JSON
-- **Host Management**: Configure and monitor infrastructure hosts
-- **Service Management**: Set up and control systemd services
-- **Quick Controls**: Start/stop/restart services directly from cards
-- **Action History**: View and manage control action history
-
-## 🎨 Customization
-
-### Adding New Lab Tools
-1. Log into the admin panel
-2. Click "Manage Lab Tools"
-3. Click "Add New Card"
-4. Fill in:
-   - **Title**: Display name for the tool
-   - **Description**: Brief description of the tool
-   - **URL**: Service endpoint (http://, https://, or relative paths)
-   - **Health Path**: Optional health check endpoint (e.g., /health, /status, /api/health)
-   - **Icon**: Upload a custom icon (PNG/JPEG/WebP, max 2MB)
-
-### Bulk Import/Export
-The admin panel supports bulk import and export of card configurations:
-
-#### Export Cards
-- Click "Export Cards" to download all current cards as a JSON file
-- The export excludes timestamps and status data for clean portability
-- Use this to backup your configuration or share with other instances
-
-#### Import Cards
-- Click "Import Cards" to upload a JSON file with card configurations
-- Cards are matched by ID first, then by title for upsert operations
-- New cards are created, existing ones are updated
-- Import results show counts of created/updated/skipped cards
-
-#### Import Format
-```json
-{
-  "cards": [
-    {
-      "title": "Service Name",
-      "description": "Service description",
-      "url": "http://service.local",
-      "iconPath": null,
-      "order": 1,
-      "isEnabled": true,
-      "group": "Service Group",
-      "healthPath": "/health"
-    }
-  ]
-}
-```
-
-**Note**: The `iconPath` field is ignored during import for security reasons. Icons must be uploaded separately through the admin interface.
-
-### Styling
-The application uses Tailwind CSS with a custom cyberpunk theme:
-- **Primary Colors**: Emerald (`emerald-400`) and Cyan (`cyan-400`)
-- **Backgrounds**: Dark slate (`slate-900`, `slate-800`)
-- **Accents**: Neon glows and pulsing indicators
-- **Responsive**: Mobile-first design with breakpoint optimizations
-
-## 🐳 Docker Deployment
-
-### Development
-```bash
-docker-compose up --build
-```
-
-### Production
-```bash
-# Build production image
-docker build -f Dockerfile.prod -t lab-portal .
-
-# Run with environment variables
-docker run -d \
-  --name lab-portal \
-  -p 3000:3000 \
-  -e DATABASE_URL="your-database-url" \
-  -e NEXTAUTH_SECRET="your-secret" \
-  -e ADMIN_PASSWORD="your-admin-password" \
-  -e NEXTAUTH_URL="http://your-domain.com" \
-  -e PUBLIC_BASE_URL="http://your-domain.com" \
-  -v ./uploads:/app/public/uploads \
-  lab-portal
-```
-
-## 🔌 API Reference
-
-### Card Management Endpoints
-
-#### GET `/api/cards/export`
-Export all cards as JSON (admin only)
-- **Response**: Array of card objects (excludes timestamps and status)
-- **Use Case**: Backup configurations, share between instances
-
-#### POST `/api/cards/import`
-Import cards from JSON (admin only)
-- **Body**: `{ "cards": [...] }` array of card objects
-- **Response**: Import results with counts and any errors
-- **Features**: Upsert by ID or title, skips icon binary data
-
-#### GET `/api/cards/all`
-Get all cards with status (admin only)
-- **Response**: Array of cards with full details including status
-
-#### POST `/api/cards`
-Create new card (admin only)
-- **Body**: Card object with required fields
-
-#### PUT `/api/cards/:id`
-Update existing card (admin only)
-- **Body**: Partial card object with fields to update
-
-#### DELETE `/api/cards/:id`
-Delete card (admin only)
-
-#### POST `/api/cards/reorder`
-Reorder cards (admin only)
-- **Body**: `{ "cards": [{ "id": "...", "order": 1, "group": "..." }] }`
-
-### Status Endpoints
-
-#### GET `/api/status?cardId=...`
-Check status of a specific card
-- **Response**: Current status with health check results
-- **Caching**: Results cached for 30 seconds
-
-#### GET `/api/status/history?cardId=...`
-Get status history for trend analysis
-- **Response**: Historical status data with timestamps
-- **Features**: 24h/7d trend data with sparkline visualization
-
-#### GET `/api/status/summary?cardId=...`
-Get uptime statistics and performance metrics
-- **Response**: Uptime percentage and performance data
-
-### Control Plane Endpoints
-
-#### Host Management
-- `GET /api/hosts` - List all hosts (admin)
-- `POST /api/hosts` - Create new host (admin)
-- `PUT /api/hosts/:id` - Update host (admin)
-- `DELETE /api/hosts/:id` - Delete host (admin)
-- `POST /api/hosts/:id/token` - Generate host token (admin)
-
-**Note**: Token is revealed once; only prefix + rotatedAt are stored afterwards.
-
-#### Service Management
-- `GET /api/services` - List all services (admin)
-- `POST /api/services` - Create new service (admin)
-- `PUT /api/services/:id` - Update service (admin)
-- `DELETE /api/services/:id` - Delete service (admin)
-
-#### Control Actions
-- `POST /api/control/actions` - Create control action (admin)
-- `GET /api/control/actions/:id` - Get action status (admin)
-- `GET /api/control/queue` - Agent action polling (supports long-polling)
-- `POST /api/control/report` - Agent status reporting
-- `POST /api/control/cron` - Cron job management (admin + server secret required)
-- `POST /api/control/prune` - Manual data pruning (admin + server secret required)
-
-#### GET `/api/control/queue` - Action Queue Polling
-**Purpose**: Retrieve queued actions for agent execution with long-polling support
-
-**Parameters**:
-- `max` (optional): Number of actions to return (1-10, default: 1)
-- `wait` (optional): Seconds to poll for actions (0-25, default: 0)
-
-**Behavior**:
-- **Immediate Response**: If actions are available, returns them immediately
-- **Polling Mode**: If `wait > 0` and no actions, polls database every 500ms until:
-  - Actions become available (returns 200 with actions)
-  - Wait time expires (returns 204 No Content)
-- **Action Locking**: Actions are automatically marked as `running` when delivered to prevent duplicate processing
-
-**Response Codes**:
-- `200 OK`: Actions found and returned as JSON array
-- `204 No Content`: No actions available (when wait=0 or polling timeout)
-- `400 Bad Request`: Invalid parameters (max/wait out of range)
-- `401 Unauthorized`: Missing or invalid authentication
-- `500 Internal Server Error`: Server-side errors
-
-**Example Usage**:
-```bash
-# Get up to 3 actions with 10-second polling
-curl "http://portal/api/control/queue?max=3&wait=10" \
-  -H "Authorization: Bearer <agent-token>"
-
-# Immediate response (no polling)
-curl "http://portal/api/control/queue?max=1" \
-  -H "Authorization: Bearer <agent-token>"
-```
-
-#### Public API (Read-Only)
-**Purpose**: Safe, token-gated endpoints for Grafana dashboards and monitoring tools
-
-**Authentication**: Requires `READONLY_PUBLIC_TOKEN` via query parameter or Authorization header
-- **Query Parameter**: `?token=<your-token>`
-- **Authorization Header**: `Authorization: Bearer <your-token>`
-
-**Security Features**:
-- URLs are hidden for security (only title/description exposed)
-- No admin or control data exposed
-- Cookie-based requests are rejected
-- Rate limiting applied
-
-**Endpoints**:
-
-##### GET `/api/public/cards`
-Returns enabled cards with safe information only.
-- **Fields**: `{id, title, description, iconPath, group, status}`
-- **Security**: URLs are excluded for security
-- **Example**:
-```bash
-curl "http://portal/api/public/cards?token=<your-token>"
-# or
-curl "http://portal/api/public/cards" \
-  -H "Authorization: Bearer <your-token>"
-```
-
-##### GET `/api/public/status/summary`
-Returns uptime statistics and current status for all cards.
-- **Data**: 24h/7d uptime, lastSeen, isUp per card
-- **Overall**: Total cards, up/down counts, aggregate uptime
-- **Example**:
-```bash
-curl "http://portal/api/public/status/summary?token=<your-token>"
-```
-
-##### GET `/api/public/status/history?cardId=...&range=24h|7d`
-Returns compact time series data for specific cards.
-- **Parameters**: `cardId` (required), `range` (24h or 7d)
-- **Data**: `{ts, isUp, latency, http, message}` series
-- **Downsampling**: Automatically limited to ≤500 points for efficiency
-- **Example**:
-```bash
-curl "http://portal/api/public/status/history?cardId=card123&range=24h&token=<your-token>"
-```
-
-**Rate Limits**: Public endpoints are rate-limited to prevent abuse
-**Caching**: Responses include appropriate cache headers for monitoring tools
-
-#### Agent System
-- `POST /api/agents/heartbeat` - Agent health monitoring
-
-## 📁 Project Structure
-
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── admin/             # Admin panel routes
-│   ├── api/               # API endpoints
-│   │   ├── auth/          # NextAuth authentication
-│   │   ├── cards/         # Card management
-│   │   ├── status/        # Status monitoring & history
-│   │   ├── control/       # Control plane APIs
-│   │   ├── hosts/         # Host management
-│   │   ├── services/      # Service management
-│   │   ├── agents/        # Agent health monitoring
-│   │   └── test-env/      # Test environment API
-│   └── page.tsx           # Main portal page
-├── components/             # React components
-│   ├── ui/                # shadcn/ui components
-│   ├── lab-card.tsx       # Lab tool card with quick controls
-│   ├── status-indicator.tsx # Status display component
-│   ├── sparkline.tsx      # Trend visualization
-│   └── card-edit-dialog.tsx # Card editing dialog
-├── lib/                    # Utilities and configurations
-│   ├── auth.ts            # Authentication & authorization
-│   ├── probe.ts           # URL health checking
-│   ├── status-sweeper.ts  # Background status monitoring
-│   ├── systemctl-executor.ts # Local action execution
-│   ├── action-pruner.ts   # Action history management
-│   ├── cron-manager.ts    # Cron job management
-│   └── logger.ts          # Structured logging
-└── types/                  # TypeScript definitions
-
-prisma/
-├── schema.prisma          # Database schema (Cards, Status, Hosts, Services, Actions)
-└── seed.ts                # Initial data with managed services
-
-scripts/
-└── curl/                  # Smoke testing scripts
-```
-
-## 🔧 Available Scripts
-
-- `npm run dev` - Development server
-- `npm run build` - Production build
-- `npm run start` - Production server
-- `npm run prisma:generate` - Generate Prisma client
-- `npm run prisma:migrate` - Run database migrations
-- `npm run prisma:seed` - Seed database with example data
-
-## 🧪 Testing
-
-### Manual Smoke Testing
-
-The project includes a comprehensive smoke test script for validating the control actions flow without UI:
-
-```bash
-# Run smoke test with defaults (localhost:3000, admin123 password)
-./scripts/curl/control-smoke.sh
-
-# Custom URL and password
-./scripts/curl/control-smoke.sh -u http://localhost:8080 -p mypassword
-
-# Using environment variables
-BASE_URL=http://localhost:8080 ADMIN_PASSWORD=mypassword ./scripts/curl/control-smoke.sh
-
-# Show help
-./scripts/curl/control-smoke.sh --help
-```
-
-**What the smoke test validates:**
-- ✅ Portal readiness and connectivity
-- ✅ Admin authentication
-- ✅ Host and service creation/retrieval
-- ✅ Control action enqueuing (start/stop/restart)
-- ✅ Localhost path completion (systemctl executor)
-- ✅ Agent path pickup verification
-
-**Requirements:**
-- `curl` - HTTP client for API calls
-- `jq` - JSON processor for response parsing
-- Portal running and accessible
-- API key authentication configured (see `scripts/curl/env.example`)
-
-**Test Flow:**
-1. Creates test host (`smoke-test-host`) and service (`smoke-test.service`)
-2. Enqueues start/stop actions and verifies localhost completion
-3. Enqueues restart action and verifies agent pickup
-4. Cleans up temporary files automatically
-
-**Documentation:**
-- [Comprehensive Smoke Testing Guide](docs/dev/SMOKE_TESTING.md)
-- [Scripts Directory](docs/scripts.md)
-- [Control Actions API](docs/api/CONTROL_ACTIONS_API.md)
-- [Agent System API](docs/api/AGENT_API.md)
-- [Local Action Execution](docs/agent/LOCAL_ACTION_EXECUTION.md)
-- [Project Status](PROJECT_STATUS.md)
-
-### Testing Framework
-- **Jest Integration** - Full testing framework with coverage reporting
-- **Component Testing** - React component testing with React Testing Library
-- **API Testing** - Comprehensive API endpoint testing
-- **Smoke Testing** - End-to-end validation without UI dependencies
-- **CI/CD Ready** - Automated testing for deployment pipelines
-
 ## 🌐 API Endpoints
 
 ### Public Routes
@@ -713,23 +287,62 @@ The portal includes a sophisticated status monitoring system:
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+We welcome contributions! This project is designed to be contributor-friendly with comprehensive templates and guidelines.
+
+### 🚀 Getting Started
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes**
+4. **Run pre-commit checks**:
+   - `npm run typecheck` - TypeScript compilation
+   - `npm run lint` - ESLint checks
+   - `npm test` - Run test suite
+   - `npm run format` - Check code formatting
+5. **Commit your changes**: Git hooks will automatically format and lint your code
+6. **Submit a pull request**
+
+### 📋 Pull Request Guidelines
+
+- Use the provided [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md)
+- Ensure all pre-commit checks pass
+- Include tests for new functionality
+- Update documentation as needed
+- Follow the existing code style (enforced by Prettier + ESLint)
+
+### 🐛 Reporting Issues
+
+- Use the [Bug Report Template](.github/ISSUE_TEMPLATE/bug.md) for bugs
+- Use the [Feature Request Template](.github/ISSUE_TEMPLATE/feature.md) for new features
+- Provide detailed information and reproduction steps
+
+### 🛠️ Development Setup
+
+- **Node.js**: Version 20.x (see [.nvmrc](.nvmrc))
+- **Package Manager**: npm or yarn
+- **Code Style**: 2 spaces, UTF-8, LF line endings (see [.editorconfig](.editorconfig))
+- **Git Hooks**: Husky + lint-staged for automatic formatting and linting
+
+### 📚 Documentation
+
+- Update relevant documentation in the `/docs` folder
+- Follow the existing documentation structure
+- Include code examples and use cases
 
 ## 📄 License
 
-This project is licensed under the ISC License.
+This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
 For support or questions:
-- Open an issue in the GitHub repository
-- Check the project documentation
-- Review the implementation summaries in the docs folder
+- 📖 Check the [comprehensive documentation](docs/index.md)
+- 🐛 [Open an issue](https://github.com/zjgordon/labPortal/issues) in the GitHub repository
+- 📋 Review the [project status](PROJECT_STATUS.md) for current development status
+- 🔍 Explore the [API documentation](docs/api/) for technical details
 
 ---
 
 **Lab Portal** - Your gateway to efficient laboratory management with style. 🚀
+
+*Built with ❤️ by the open source community*
