@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { signIn } from 'next-auth/react'
+import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
     
     if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
+      return createErrorResponse(
+        ErrorCodes.MISSING_REQUIRED_FIELD,
+        'Email and password are required',
+        400
       )
     }
 
@@ -25,15 +27,17 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json(
-      { error: 'Invalid credentials' },
-      { status: 401 }
+    return createErrorResponse(
+      ErrorCodes.UNAUTHORIZED,
+      'Invalid credentials',
+      401
     )
   } catch (error) {
     console.error('Login error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    return createErrorResponse(
+      ErrorCodes.INTERNAL_ERROR,
+      'Internal server error',
+      500
     )
   }
 }

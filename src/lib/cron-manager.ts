@@ -9,6 +9,7 @@
 
 import { actionPruner } from './action-pruner'
 import { logger } from './logger'
+import { validateEnv } from './env'
 
 interface CronJob {
   id: string
@@ -26,6 +27,12 @@ class CronManager {
   private isShutdown = false
 
   constructor() {
+    // Validate environment variables on startup
+    if (!validateEnv()) {
+      logger.error('Environment validation failed. Application cannot start.')
+      process.exit(1)
+    }
+    
     this.setupDefaultJobs()
     this.setupGracefulShutdown()
   }

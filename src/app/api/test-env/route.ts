@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { probeUrl } from '@/lib/probe'
+import { probeUrl } from '@/lib/status/probe'
 
 // GET /api/test-env - Test environment connectivity
 export async function GET(request: NextRequest) {

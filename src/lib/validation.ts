@@ -102,6 +102,16 @@ export const updateCardSchema = z.object({
   order: z.number().int().min(0, "Order must be non-negative").optional(),
   group: groupSchema.optional(),
   isEnabled: z.boolean().optional(),
+}).transform((data) => {
+  // Remove undefined values to work with exactOptionalPropertyTypes
+  const result: any = {}
+  Object.keys(data).forEach(key => {
+    const value = data[key as keyof typeof data]
+    if (value !== undefined) {
+      result[key] = value
+    }
+  })
+  return result
 })
 
 /**

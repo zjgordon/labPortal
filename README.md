@@ -61,6 +61,7 @@ Comprehensive documentation is available in the [`/docs`](docs/index.md) directo
 - [Agent Setup](docs/agent/LOCAL_ACTION_EXECUTION.md) - Local system control
 - [Agent Behavior](docs/agent/AGENT_BEHAVIOR.md) - Configuration and behavior
 - [Service Configuration](docs/agent/lab-portal-agent.service) - Systemd service setup
+- [Agent Code](../agent/README.md) - Complete agent system implementation
 
 ### 🚀 Operations & Deployment
 - [Docker Setup](docs/ops/docker-compose.yml) - Development and production
@@ -71,6 +72,7 @@ Comprehensive documentation is available in the [`/docs`](docs/index.md) directo
 - [Testing Guide](docs/dev/SMOKE_TESTING.md) - Comprehensive testing
 - [Development Setup](docs/dev/TESTING.md) - Testing framework
 - [Status Testing](docs/dev/STATUS_TESTING.md) - Status system validation
+- [Testing Framework](../tests/README.md) - Testing guidelines and structure
 
 ## 📡 API Endpoints & Error Handling
 
@@ -132,10 +134,62 @@ The `/api/control/queue` endpoint supports long-polling:
 - **Key Format**: UUID v4 recommended for global uniqueness
 - **Expiration**: Keys expire after 90 days for automatic cleanup
 
+## 🏗️ Repository Structure
+
+The Lab Portal follows a clean, professional repository structure:
+
+```
+labPortal/
+├── 📁 src/                    # Source code
+│   ├── app/                   # Next.js App Router
+│   │   ├── api/              # API routes
+│   │   ├── admin/            # Admin interface
+│   │   └── globals.css       # Global styles
+│   ├── components/            # React components
+│   ├── hooks/                 # Custom React hooks
+│   └── lib/                   # Utility libraries
+│       ├── auth/              # Authentication system
+│       ├── control/           # Control plane logic
+│       ├── status/            # Status monitoring
+│       └── utils/             # General utilities
+├── 📁 docs/                   # Organized documentation
+│   ├── architecture/          # System design docs
+│   ├── api/                   # API reference
+│   ├── agent/                 # Agent system docs
+│   ├── ops/                   # Operations docs
+│   ├── dev/                   # Development docs
+│   └── index.md               # Documentation landing page
+├── 📁 agent/                  # Agent system code
+│   ├── src/                   # Agent source code
+│   ├── package.json           # Agent dependencies
+│   └── README.md              # Agent documentation
+├── 📁 scripts/                # Utility and testing scripts
+│   ├── control-smoke.sh       # Control actions testing
+│   ├── test-public-api.sh     # Public API testing
+│   └── check-links.js         # Documentation link checker
+├── 📁 tests/                  # Testing framework
+│   └── README.md              # Testing guidelines
+├── 📁 prisma/                 # Database schema and migrations
+├── 📁 public/                 # Static assets and uploads
+├── 📄 README.md               # Project overview
+├── 📄 PROJECT_STATUS.md       # Development status
+├── 📄 .nvmrc                  # Node.js version (20.x)
+├── 📄 .editorconfig           # Editor configuration
+└── 📄 .gitattributes          # Git file handling
+```
+
+### Key Directories
+- **`src/`**: Main application source code with organized lib structure
+- **`docs/`**: Professional documentation organized by topic
+- **`agent/`**: Complete agent system for remote execution
+- **`scripts/`**: Testing, automation, and utility scripts
+- **`tests/`**: Testing framework and guidelines
+- **`prisma/`**: Database schema and migrations
+
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 20.x (see .nvmrc)
 - npm or yarn
 - Docker (optional, for containerized deployment)
 

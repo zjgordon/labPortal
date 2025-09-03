@@ -37,10 +37,12 @@ Lab Portal is a modern, cyberpunk-styled laboratory control panel and control pl
 - [Smoke Testing](dev/SMOKE_TESTING.md) - Comprehensive testing guide
 - [Testing Documentation](dev/TESTING.md) - Testing framework and practices
 - [Status Testing](dev/STATUS_TESTING.md) - Status system testing guide
+- [Testing Framework](../tests/README.md) - Testing guidelines and structure
 
 ### 📖 Additional Resources
 - [Scripts Documentation](scripts.md) - Utility scripts and automation
 - [Project Status](../PROJECT_STATUS.md) - Current project status and roadmap
+- [Tests Directory](../tests/README.md) - Testing framework and guidelines
 
 ## 🚀 Quick Start
 

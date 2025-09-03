@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { PrismaClient } from '@prisma/client'
+import { env } from '@/lib/env'
+import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 
 const prisma = new PrismaClient()
 
@@ -11,7 +13,7 @@ export async function isAdminAuthenticated(request: NextRequest): Promise<boolea
   try {
     // First check for API key authentication (for smoke tests)
     const apiKey = request.headers.get('x-api-key')
-    if (apiKey === process.env.ADMIN_API_KEY || apiKey === 'smoke-test-key') {
+    if (apiKey === env.ADMIN_CRON_SECRET || apiKey === 'smoke-test-key') {
       return true
     }
     
@@ -37,9 +39,10 @@ export async function requireAdminAuth(request: NextRequest): Promise<NextRespon
   const isAdmin = await isAdminAuthenticated(request)
   
   if (!isAdmin) {
-    return NextResponse.json(
-      { error: 'Unauthorized. Admin access required.' },
-      { status: 401 }
+    return createErrorResponse(
+      ErrorCodes.UNAUTHORIZED,
+      'Unauthorized. Admin access required.',
+      401
     )
   }
   
@@ -62,7 +65,7 @@ export async function isAgentAuthenticated(request: NextRequest): Promise<boolea
     }
     
     // Check if token hash exists in database
-    const { getTokenHash } = require('./auth/token-utils')
+    const { getTokenHash } = require('./token-utils')
     const tokenHash = getTokenHash(token)
     
     const host = await prisma.host.findFirst({
@@ -92,7 +95,7 @@ export async function getHostFromToken(request: NextRequest): Promise<any> {
     }
     
     // Get host from token hash
-    const { getTokenHash } = require('./auth/token-utils')
+    const { getTokenHash } = require('./token-utils')
     const tokenHash = getTokenHash(token)
     
     const host = await prisma.host.findFirst({
@@ -113,9 +116,10 @@ export async function requireAgentAuth(request: NextRequest): Promise<NextRespon
   const isAgent = await isAgentAuthenticated(request)
   
   if (!isAgent) {
-    return NextResponse.json(
-      { error: 'Unauthorized. Valid agent token required.' },
-      { status: 401 }
+    return createErrorResponse(
+      ErrorCodes.UNAUTHORIZED,
+      'Unauthorized. Valid agent token required.',
+      401
     )
   }
   
@@ -129,9 +133,10 @@ export async function rejectAgentTokens(request: NextRequest): Promise<NextRespo
   const isAgent = await isAgentAuthenticated(request)
   
   if (isAgent) {
-    return NextResponse.json(
-      { error: 'Forbidden. Agent tokens cannot access admin endpoints.' },
-      { status: 403 }
+    return createErrorResponse(
+      ErrorCodes.FORBIDDEN,
+      'Forbidden. Agent tokens cannot access admin endpoints.',
+      403
     )
   }
   
@@ -143,7 +148,7 @@ export async function rejectAgentTokens(request: NextRequest): Promise<NextRespo
  * @deprecated Use generateAgentToken from '@/lib/auth/token-utils' instead
  */
 export function generateAgentToken(): string {
-  const { generateAgentToken: newGenerateToken } = require('./auth/token-utils')
+      const { generateAgentToken: newGenerateToken } = require('./token-utils')
   const tokenInfo = newGenerateToken()
   return tokenInfo.plaintext
 }

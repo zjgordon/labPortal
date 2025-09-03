@@ -3,8 +3,8 @@ import { PrismaClient } from '@prisma/client'
 import { requireAdminAuth, rejectAgentTokens } from '@/lib/auth'
 import { createActionSchema } from '@/lib/validation'
 import { getServerSession } from 'next-auth'
-import { LOCAL_ACTION_CONFIG } from '@/lib/env'
-import { SystemctlExecutor } from '@/lib/systemctl-executor'
+import { env } from '@/lib/env'
+import { SystemctlExecutor } from '@/lib/control/systemctl-executor'
 import { controlActionsRateLimiter } from '@/lib/rate-limiter'
 import { logger } from '@/lib/logger'
 import { ActionFSM } from '@/lib/control/fsm'
@@ -263,8 +263,8 @@ export async function POST(request: NextRequest) {
       message: `Action ${action.kind} created for service ${action.service.displayName} on host ${action.host.name}`
     })
 
-    // If this is a local action, execute it immediately
-    if (validatedData.hostId === LOCAL_ACTION_CONFIG.HOST_LOCAL_ID) {
+          // If this is a local action, execute it immediately
+      if (validatedData.hostId === env.HOST_LOCAL_ID) {
       const startTime = Date.now()
       
       try {
@@ -294,9 +294,9 @@ export async function POST(request: NextRequest) {
 
         // Execute the command
         const result = await SystemctlExecutor.execute(
-          validatedData.kind as any,
-          service.unitName,
-          LOCAL_ACTION_CONFIG.ALLOW_SYSTEMCTL
+                      validatedData.kind as any,
+            service.unitName,
+            env.ALLOW_SYSTEMCTL
         )
 
         // Use the duration from the executor result, fallback to calculated duration

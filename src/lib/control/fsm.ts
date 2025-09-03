@@ -101,7 +101,9 @@ export class ActionFSM {
     if (states.length < 2) return true
 
     for (let i = 0; i < states.length - 1; i++) {
-      if (!this.isValidTransition(states[i], states[i + 1])) {
+      const currentState = states[i]
+      const nextState = states[i + 1]
+      if (!currentState || !nextState || !this.isValidTransition(currentState, nextState)) {
         return false
       }
     }

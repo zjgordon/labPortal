@@ -108,13 +108,13 @@ function LabCardsGrid() {
       if (!acc[card.group]) {
         acc[card.group] = []
       }
-      acc[card.group].push(card)
+      acc[card.group]!.push(card)
       return acc
     }, {} as Record<string, LabCardData[]>)
 
     // Sort groups alphabetically and sort cards within each group by order
     Object.keys(grouped).forEach(group => {
-      grouped[group].sort((a, b) => a.order - b.order)
+      grouped[group]!.sort((a, b) => a.order - b.order)
     })
 
     return grouped
@@ -191,13 +191,13 @@ function LabCardsGrid() {
             </h3>
             <div className="flex-1 h-px bg-slate-700"></div>
             <span className="text-sm text-slate-500 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-              {groupedCards[groupName].length} tool{groupedCards[groupName].length !== 1 ? 's' : ''}
+              {groupedCards[groupName]!.length} tool{groupedCards[groupName]!.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {/* Cards Grid for this Category */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {groupedCards[groupName].map((card) => (
+            {groupedCards[groupName]!.map((card) => (
               <LabCard
                 key={card.id}
                 id={card.id}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { probeUrl } from '@/lib/probe'
+import { probeUrl } from '@/lib/status/probe'
 import { statusQuerySchema } from '@/lib/validation'
 import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 

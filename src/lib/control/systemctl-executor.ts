@@ -1,5 +1,5 @@
 import { exec } from 'child_process'
-import { LOCAL_ACTION_CONFIG } from './env'
+import { env } from '../env'
 
 /**
  * Safe systemctl command executor
@@ -50,7 +50,7 @@ export class SystemctlExecutor {
           exitCode: -1,
           stdout: '',
           stderr: '',
-          message: `Invalid unit name: ${unitName}. Must match allowlist regex: ${LOCAL_ACTION_CONFIG.UNIT_ALLOWLIST_REGEX}`,
+          message: `Invalid unit name: ${unitName}. Must match allowlist regex: ${env.UNIT_ALLOWLIST_REGEX}`,
           durationMs,
           isTimeout: false
         })
@@ -73,7 +73,7 @@ export class SystemctlExecutor {
 
       // Execute the command with configurable timeout
       exec(cmd, {
-        timeout: LOCAL_ACTION_CONFIG.EXEC_TIMEOUT_MS,
+        timeout: env.EXEC_TIMEOUT_MS,
         maxBuffer: 1024 * 1024 // 1MB buffer
       }, (error, stdout, stderr) => {
         const durationMs = Date.now() - startTime
@@ -96,7 +96,7 @@ export class SystemctlExecutor {
           
           if (isTimeout) {
             exitCode = -2 // Special exit code for timeout
-            message = `Command timed out after ${LOCAL_ACTION_CONFIG.EXEC_TIMEOUT_MS}ms: systemctl ${command} ${unitName}`
+            message = `Command timed out after ${env.EXEC_TIMEOUT_MS}ms: systemctl ${command} ${unitName}`
           } else {
             // Non-zero exit code (not timeout)
             message = this.createErrorMessage(command, unitName, stderr, exitCode)
@@ -138,7 +138,7 @@ export class SystemctlExecutor {
    */
   private static isValidUnitName(unitName: string): boolean {
     try {
-      const regex = new RegExp(LOCAL_ACTION_CONFIG.UNIT_ALLOWLIST_REGEX)
+      const regex = new RegExp(env.UNIT_ALLOWLIST_REGEX)
       return regex.test(unitName)
     } catch (error) {
       // If regex is invalid, fall back to basic validation

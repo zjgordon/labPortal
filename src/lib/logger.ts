@@ -1,3 +1,5 @@
+import { env } from '@/lib/env'
+
 /**
  * Enhanced logging system for Lab Portal
  * Features:
@@ -57,7 +59,7 @@ class Logger {
   }
 
   debug(message: string, data?: any): void {
-    if (process.env.NODE_ENV === 'development') {
+    if (env.NODE_ENV === 'development') {
       console.log(this.formatMessage('DEBUG', message, data))
     }
   }

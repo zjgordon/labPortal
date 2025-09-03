@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
+import { env } from '@/lib/env'
 import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 
 export type AdminPrincipal = {
@@ -23,7 +24,7 @@ export async function getAdminPrincipal(req: NextRequest): Promise<AdminPrincipa
   try {
     // Check for API key authentication (for smoke tests)
     const apiKey = req.headers.get('x-api-key')
-    if (apiKey === process.env.ADMIN_API_KEY || apiKey === 'smoke-test-key') {
+    if (apiKey === env.ADMIN_CRON_SECRET || apiKey === 'smoke-test-key') {
       return {
         type: 'admin',
         email: 'admin@local',

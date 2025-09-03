@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { GET } from '../status/route'
 import { prisma } from '@/lib/prisma'
-import { probeUrl } from '@/lib/probe'
+import { probeUrl } from '@/lib/status/probe'
 
 // Mock Prisma
 jest.mock('@/lib/prisma', () => ({

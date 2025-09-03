@@ -1,4 +1,4 @@
-import { SystemctlExecutor } from '../systemctl-executor'
+import { SystemctlExecutor } from '../control/systemctl-executor'
 
 // Mock the exec function
 jest.mock('child_process', () => ({

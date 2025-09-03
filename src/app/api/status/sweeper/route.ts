@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { statusSweeper } from '@/lib/status-sweeper'
+import { statusSweeper } from '@/lib/status/status-sweeper'
 
 export async function GET() {
   try {

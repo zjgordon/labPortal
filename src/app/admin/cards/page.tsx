@@ -76,10 +76,16 @@ export default function AdminCardsPage() {
     const items = Array.from(cards)
     
     // Find the dragged item
-    const [draggedItem] = items.splice(source.index, 1)
+    const draggedItems = items.splice(source.index, 1)
+    const draggedItem = draggedItems[0]
     
-    // Insert at destination
-    items.splice(destination.index, 0, draggedItem)
+    // Insert at destination (check if draggedItem exists)
+    if (draggedItem) {
+      items.splice(destination.index, 0, draggedItem)
+    } else {
+      console.error('Dragged item not found at index:', source.index)
+      return
+    }
 
     // Update local state immediately for responsive UI
     // Recalculate order values for all items
@@ -318,13 +324,13 @@ export default function AdminCardsPage() {
     if (!grouped[card.group]) {
       grouped[card.group] = []
     }
-    grouped[card.group].push(card)
+    grouped[card.group]!.push(card)
     return grouped
   }, {})
 
   // Sort groups alphabetically
   Object.keys(groupedCards).forEach(group => {
-    groupedCards[group].sort((a, b) => a.order - b.order)
+    groupedCards[group]!.sort((a, b) => a.order - b.order)
   })
 
   if (loading) {

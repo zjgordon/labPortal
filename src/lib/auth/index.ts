@@ -13,4 +13,4 @@ export {
   requireAgentAuth,
   rejectAgentTokens,
   generateAgentToken
-} from '../auth'
+} from './auth'

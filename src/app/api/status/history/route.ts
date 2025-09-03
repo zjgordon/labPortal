@@ -89,12 +89,17 @@ export async function GET(request: NextRequest) {
       downsampledEvents = []
       
       for (let i = 0; i < events.length; i += step) {
-        downsampledEvents.push(events[i])
+        const event = events[i]
+        if (event) {
+          downsampledEvents.push(event)
+        }
       }
       
       // Always include the last event
-      if (downsampledEvents[downsampledEvents.length - 1] !== events[events.length - 1]) {
-        downsampledEvents.push(events[events.length - 1])
+      const lastDownsampledEvent = downsampledEvents[downsampledEvents.length - 1]
+      const lastEvent = events[events.length - 1]
+      if (lastDownsampledEvent !== lastEvent && lastEvent) {
+        downsampledEvents.push(lastEvent)
       }
     }
     
