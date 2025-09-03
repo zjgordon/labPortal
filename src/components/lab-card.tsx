@@ -1,52 +1,66 @@
-"use client"
+'use client';
 
-import React, { useState, useEffect, useCallback } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { StatusIndicator } from "@/components/status-indicator"
-import { Sparkline } from "@/components/sparkline"
-import { ExternalLink, Monitor, MoreVertical, Play, Square, RotateCcw } from "lucide-react"
-import Image from "next/image"
-import { useSession } from "next-auth/react"
-import { useToast } from "@/hooks/use-toast"
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { StatusIndicator } from '@/components/status-indicator';
+import { Sparkline } from '@/components/sparkline';
+import {
+  ExternalLink,
+  Monitor,
+  MoreVertical,
+  Play,
+  Square,
+  RotateCcw,
+} from 'lucide-react';
+import Image from 'next/image';
+import { useSession } from 'next-auth/react';
+import { useToast } from '@/hooks/use-toast';
+import { isControlPlaneEnabled } from '@/lib/control/control-plane';
 
 export interface LabCardProps {
-  id: string
-  title: string
-  description: string
-  url: string
-  iconPath?: string | null
-  order: number
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  iconPath?: string | null;
+  order: number;
   services?: Array<{
-    id: string
-    unitName: string
-    displayName: string
-    allowStart: boolean
-    allowStop: boolean
-    allowRestart: boolean
+    id: string;
+    unitName: string;
+    displayName: string;
+    allowStart: boolean;
+    allowStop: boolean;
+    allowRestart: boolean;
     host: {
-      id: string
-      name: string
-    }
-  }>
+      id: string;
+      name: string;
+    };
+  }>;
 }
 
 interface CardStatus {
-  isUp: boolean | null
-  lastChecked: string | null
-  lastHttp: number | null
-  latencyMs: number | null
-  message: string | null
-  failCount: number
-  nextCheckAt: string | null
+  isUp: boolean | null;
+  lastChecked: string | null;
+  lastHttp: number | null;
+  latencyMs: number | null;
+  message: string | null;
+  failCount: number;
+  nextCheckAt: string | null;
 }
 
 interface StatusHistory {
   events: Array<{
-    timestamp: string
-    isUp: boolean
-    latencyMs?: number | null
-  }>
-  uptimePercentage: number
+    timestamp: string;
+    isUp: boolean;
+    latencyMs?: number | null;
+  }>;
+  uptimePercentage: number;
 }
 
 /**
@@ -57,9 +71,17 @@ interface StatusHistory {
  * - Cyberpunk-themed styling with glow effects
  * - Status staleness detection and visual feedback
  */
-function LabCardComponent({ id, title, description, url, iconPath, order, services }: LabCardProps) {
-  const { data: session } = useSession()
-  const { toast } = useToast()
+function LabCardComponent({
+  id,
+  title,
+  description,
+  url,
+  iconPath,
+  order,
+  services,
+}: LabCardProps) {
+  const { data: session } = useSession();
+  const { toast } = useToast();
   const [status, setStatus] = useState<CardStatus>({
     isUp: null,
     lastChecked: null,
@@ -68,13 +90,13 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
     message: null,
     failCount: 0,
     nextCheckAt: null,
-  })
+  });
 
-  const [history, setHistory] = useState<StatusHistory | null>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
-  const [isControlOpen, setIsControlOpen] = useState(false)
-  const [isExecutingAction, setIsExecutingAction] = useState(false)
+  const [history, setHistory] = useState<StatusHistory | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isControlOpen, setIsControlOpen] = useState(false);
+  const [isExecutingAction, setIsExecutingAction] = useState(false);
 
   /**
    * Fetches the current status for this lab tool card
@@ -82,76 +104,78 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
    */
   const fetchStatus = useCallback(async () => {
     try {
-      setIsRefreshing(true)
-      const response = await fetch(`/api/status?cardId=${id}`)
+      setIsRefreshing(true);
+      const response = await fetch(`/api/status?cardId=${id}`);
       if (response.ok) {
-        const data = await response.json()
-        setStatus(data)
+        const data = await response.json();
+        setStatus(data);
       } else {
-        console.error(`Status check failed for card ${id}:`, response.status)
+        console.error(`Status check failed for card ${id}:`, response.status);
       }
     } catch (error) {
-      console.error(`Failed to fetch status for card ${id}:`, error)
+      console.error(`Failed to fetch status for card ${id}:`, error);
     } finally {
-      setIsRefreshing(false)
+      setIsRefreshing(false);
     }
-  }, [id])
+  }, [id]);
 
   /**
    * Fetches the status history for this card
    */
   const fetchHistory = useCallback(async () => {
     try {
-      setIsLoadingHistory(true)
-      const response = await fetch(`/api/status/history?cardId=${id}&range=24h`)
+      setIsLoadingHistory(true);
+      const response = await fetch(
+        `/api/status/history?cardId=${id}&range=24h`
+      );
       if (response.ok) {
-        const data = await response.json()
-        setHistory(data)
+        const data = await response.json();
+        setHistory(data);
       } else {
-        console.error(`History fetch failed for card ${id}:`, response.status)
+        console.error(`History fetch failed for card ${id}:`, response.status);
       }
     } catch (error) {
-      console.error(`Failed to fetch history for card ${id}:`, error)
+      console.error(`Failed to fetch history for card ${id}:`, error);
     } finally {
-      setIsLoadingHistory(false)
+      setIsLoadingHistory(false);
     }
-  }, [id])
+  }, [id]);
 
   // Initial status and history fetch
   useEffect(() => {
-    fetchStatus()
-    fetchHistory()
-  }, [id, fetchStatus, fetchHistory]) // Run when id, fetchStatus, or fetchHistory changes
+    fetchStatus();
+    fetchHistory();
+  }, [id, fetchStatus, fetchHistory]); // Run when id, fetchStatus, or fetchHistory changes
 
   // Staggered polling every 30 seconds with random offset (0-5s) to reduce thundering herd
   useEffect(() => {
     // Generate a random offset between 0-5 seconds for this specific card
-    const randomOffset = Math.random() * 5000
-    let intervalId: NodeJS.Timeout | null = null
-    
+    const randomOffset = Math.random() * 5000;
+    let intervalId: NodeJS.Timeout | null = null;
+
     // Set initial timeout for first poll
     const initialTimeout = setTimeout(() => {
-      fetchStatus()
-      
+      fetchStatus();
+
       // Then set up regular 30-second interval
-      intervalId = setInterval(fetchStatus, 30000)
-    }, randomOffset)
-    
+      intervalId = setInterval(fetchStatus, 30000);
+    }, randomOffset);
+
     return () => {
-      clearTimeout(initialTimeout)
+      clearTimeout(initialTimeout);
       if (intervalId) {
-        clearInterval(intervalId)
+        clearInterval(intervalId);
       }
-    }
-  }, [id, fetchStatus]) // Run when id or fetchStatus changes
+    };
+  }, [id, fetchStatus]); // Run when id or fetchStatus changes
 
   // Refresh history every 5 minutes
   useEffect(() => {
-    const interval = setInterval(fetchHistory, 5 * 60 * 1000)
+    const interval = setInterval(fetchHistory, 5 * 60 * 1000);
     return () => {
-      clearInterval(interval)
-    }
-  }, [id, fetchHistory]) // Run when id or fetchHistory changes
+      clearInterval(interval);
+    };
+  }, [id, fetchHistory]); // Run when id or fetchHistory changes
 
   /**
    * Handles card click events with intelligent URL handling
@@ -165,40 +189,48 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
     if (url && url.trim() !== '') {
       try {
         // Ensure the URL is properly formatted
-        let targetUrl = url.trim()
-        
+        let targetUrl = url.trim();
+
         // If it's a relative path, make it absolute
         if (targetUrl.startsWith('/')) {
-          targetUrl = `${window.location.origin}${targetUrl}`
+          targetUrl = `${window.location.origin}${targetUrl}`;
         }
-        
+
         // If it doesn't have a protocol, assume http
-        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-          targetUrl = `http://${targetUrl}`
+        if (
+          !targetUrl.startsWith('http://') &&
+          !targetUrl.startsWith('https://')
+        ) {
+          targetUrl = `http://${targetUrl}`;
         }
-        
+
         // Try to open the URL in a new tab
-        const newWindow = window.open(targetUrl, '_blank', 'noopener,noreferrer')
-        
+        const newWindow = window.open(
+          targetUrl,
+          '_blank',
+          'noopener,noreferrer'
+        );
+
         if (!newWindow) {
           // If popup is blocked, try alternative methods
           try {
             // Method 1: Try to navigate in the same window
-            window.location.href = targetUrl
+            window.location.href = targetUrl;
           } catch (fallbackError) {
             // Method 2: Show user-friendly error message
-            alert(`Unable to open ${targetUrl}.\n\nThis might be due to:\n• Popup blocker enabled\n• Browser security settings\n• Network restrictions\n\nPlease try:\n1. Allowing popups for this site\n2. Right-clicking the card and selecting "Open in new tab"\n3. Copying the URL: ${targetUrl}`)
+            alert(
+              `Unable to open ${targetUrl}.\n\nThis might be due to:\n• Popup blocker enabled\n• Browser security settings\n• Network restrictions\n\nPlease try:\n1. Allowing popups for this site\n2. Right-clicking the card and selecting "Open in new tab"\n3. Copying the URL: ${targetUrl}`
+            );
           }
         }
-        
       } catch (error) {
-        console.error('Error opening URL:', error)
-        alert(`Error opening URL: ${error}`)
+        console.error('Error opening URL:', error);
+        alert(`Error opening URL: ${error}`);
       }
     } else {
-      alert('No URL configured for this card')
+      alert('No URL configured for this card');
     }
-  }
+  };
 
   /**
    * Formats latency values for display
@@ -206,10 +238,10 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
    * @returns Formatted string (e.g., "150ms" or "2.5s")
    */
   const formatLatency = (latencyMs: number | null) => {
-    if (latencyMs === null) return null
-    if (latencyMs < 1000) return `${latencyMs}ms`
-    return `${(latencyMs / 1000).toFixed(1)}s`
-  }
+    if (latencyMs === null) return null;
+    if (latencyMs < 1000) return `${latencyMs}ms`;
+    return `${(latencyMs / 1000).toFixed(1)}s`;
+  };
 
   /**
    * Formats the last checked timestamp for display
@@ -217,58 +249,68 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
    * @returns Formatted time string or "Never" if null
    */
   const formatLastChecked = (lastChecked: string | null) => {
-    if (lastChecked === null) return 'Never'
-    return new Date(lastChecked).toLocaleTimeString()
-  }
+    if (lastChecked === null) return 'Never';
+    return new Date(lastChecked).toLocaleTimeString();
+  };
 
   /**
    * Determines if the status data is stale (older than 2 minutes)
    * @returns true if status is stale, false if fresh
    */
   const isStatusStale = () => {
-    if (!status.lastChecked) return true
-    
+    if (!status.lastChecked) return true;
+
     try {
-      const lastCheckedTime = new Date(status.lastChecked).getTime()
+      const lastCheckedTime = new Date(status.lastChecked).getTime();
       if (isNaN(lastCheckedTime)) {
-        console.warn(`Invalid lastChecked date for ${title}:`, status.lastChecked)
-        return true
+        console.warn(
+          `Invalid lastChecked date for ${title}:`,
+          status.lastChecked
+        );
+        return true;
       }
-      
-      const timeDiff = Date.now() - lastCheckedTime
-      const isStale = timeDiff > 120000 // 2 minutes
-      
-      return isStale
+
+      const timeDiff = Date.now() - lastCheckedTime;
+      const isStale = timeDiff > 120000; // 2 minutes
+
+      return isStale;
     } catch (error) {
-      console.error(`Error parsing lastChecked date for ${title}:`, error, status.lastChecked)
-      return true
+      console.error(
+        `Error parsing lastChecked date for ${title}:`,
+        error,
+        status.lastChecked
+      );
+      return true;
     }
-  }
+  };
 
   // Get status color based on status and staleness
   const getStatusColor = () => {
-    if (isStatusStale()) return 'bg-gray-500' // Grey for stale status
-    if (status.isUp === null) return 'bg-gray-500' // Grey for unknown
-    return status.isUp ? 'bg-emerald-500' : 'bg-red-500' // Green for up, red for down
-  }
+    if (isStatusStale()) return 'bg-gray-500'; // Grey for stale status
+    if (status.isUp === null) return 'bg-gray-500'; // Grey for unknown
+    return status.isUp ? 'bg-emerald-500' : 'bg-red-500'; // Green for up, red for down
+  };
 
   // Get status text
   const getStatusText = () => {
-    if (isStatusStale()) return 'Stale'
-    if (status.isUp === null) return 'Unknown'
-    return status.isUp ? 'Up' : 'Down'
-  }
+    if (isStatusStale()) return 'Stale';
+    if (status.isUp === null) return 'Unknown';
+    return status.isUp ? 'Up' : 'Down';
+  };
 
   // Create tooltip content
   const getTooltipContent = () => {
-    const parts = []
-    if (status.lastHttp !== null) parts.push(`HTTP: ${status.lastHttp}`)
-    if (status.message) parts.push(`Message: ${status.message}`)
-    if (status.failCount > 0) parts.push(`Fail Count: ${status.failCount}`)
-    if (status.nextCheckAt) parts.push(`Next Check: ${new Date(status.nextCheckAt).toLocaleTimeString()}`)
-    
-    return parts.length > 0 ? parts.join('\n') : 'No additional information'
-  }
+    const parts = [];
+    if (status.lastHttp !== null) parts.push(`HTTP: ${status.lastHttp}`);
+    if (status.message) parts.push(`Message: ${status.message}`);
+    if (status.failCount > 0) parts.push(`Fail Count: ${status.failCount}`);
+    if (status.nextCheckAt)
+      parts.push(
+        `Next Check: ${new Date(status.nextCheckAt).toLocaleTimeString()}`
+      );
+
+    return parts.length > 0 ? parts.join('\n') : 'No additional information';
+  };
 
   /**
    * Executes a control action on a linked service
@@ -276,10 +318,14 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
    * @param hostId - The host ID where the service runs
    * @param action - The action to perform (start/stop/restart)
    */
-  const executeControlAction = async (serviceId: string, hostId: string, action: 'start' | 'stop' | 'restart') => {
-    if (isExecutingAction) return
-    
-    setIsExecutingAction(true)
+  const executeControlAction = async (
+    serviceId: string,
+    hostId: string,
+    action: 'start' | 'stop' | 'restart'
+  ) => {
+    if (isExecutingAction) return;
+
+    setIsExecutingAction(true);
     try {
       const response = await fetch('/api/control/actions', {
         method: 'POST',
@@ -291,76 +337,78 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
           serviceId,
           kind: action,
         }),
-      })
+      });
 
       if (response.ok) {
-        const result = await response.json()
+        const result = await response.json();
         toast({
-          title: "Action Enqueued",
+          title: 'Action Enqueued',
           description: `${action.charAt(0).toUpperCase() + action.slice(1)} action for ${title} has been queued successfully.`,
-        })
+        });
       } else {
-        const error = await response.json()
+        const error = await response.json();
         toast({
-          title: "Action Failed",
+          title: 'Action Failed',
           description: error.error || `Failed to enqueue ${action} action.`,
-          variant: "destructive",
-        })
+          variant: 'destructive',
+        });
       }
     } catch (error) {
-      console.error(`Failed to execute ${action} action:`, error)
+      console.error(`Failed to execute ${action} action:`, error);
       toast({
-        title: "Action Failed",
+        title: 'Action Failed',
         description: `Failed to execute ${action} action. Please try again.`,
-        variant: "destructive",
-      })
+        variant: 'destructive',
+      });
     } finally {
-      setIsExecutingAction(false)
-      setIsControlOpen(false)
+      setIsExecutingAction(false);
+      setIsControlOpen(false);
     }
-  }
+  };
 
   // Check if user is admin and has linked services
-  const isAdmin = session?.user?.email === 'admin@local'
-  const hasLinkedServices = services && services.length > 0
+  const isAdmin = session?.user?.email === 'admin@local';
+  const hasLinkedServices = services && services.length > 0;
+  const controlPlaneEnabled = isControlPlaneEnabled();
 
   // Close control dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isControlOpen) {
-        setIsControlOpen(false)
+        setIsControlOpen(false);
       }
-    }
+    };
 
     if (isControlOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isControlOpen])
+  }, [isControlOpen]);
 
   return (
     <div className="relative group">
       {/* Clickable overlay with fallback link */}
-      <a 
-        href={url || '#'} 
-        target="_blank" 
+      <a
+        href={url || '#'}
+        target="_blank"
         rel="noopener noreferrer"
         className="absolute inset-0 z-10"
         onClick={(e) => {
-          e.preventDefault()
-          handleCardClick()
+          e.preventDefault();
+          handleCardClick();
         }}
         title={`Click to open ${url} in new tab`}
       />
-      
+
       <Card className="group transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] h-full flex flex-col bg-slate-800 border-slate-700 text-slate-100 hover:border-slate-600 cursor-pointer">
         <CardHeader className="pb-4 text-center">
           {/* Centered Icon */}
           <div className="flex justify-center mb-4">
             {iconPath ? (
               <div className="w-16 h-16 bg-slate-700/50 rounded-lg p-2 flex items-center justify-center group-hover:bg-slate-600/50 transition-all duration-300 shadow-[0_0_20px_rgba(52,211,153,0.3)] group-hover:shadow-[0_0_25px_rgba(52,211,153,0.5)] border border-emerald-400/20 group-hover:border-emerald-400/40">
-                <Image 
-                  src={iconPath} 
+                <Image
+                  src={iconPath}
                   alt={`${title} icon`}
                   width={40}
                   height={40}
@@ -379,27 +427,30 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
             {title}
           </CardTitle>
 
-          {/* Control Dropdown (top right) - Only for admin users with linked services */}
-          {isAdmin && hasLinkedServices && (
+          {/* Control Dropdown (top right) - Only for admin users with linked services when control plane is enabled */}
+          {isAdmin && hasLinkedServices && controlPlaneEnabled && (
             <div className="absolute top-4 right-4 z-20">
               <div className="relative">
                 <button
                   onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setIsControlOpen(!isControlOpen)
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsControlOpen(!isControlOpen);
                   }}
                   className="p-1 rounded-md bg-slate-700/80 hover:bg-slate-600/80 transition-colors text-slate-300 hover:text-slate-100"
                   title="Control Services"
                 >
                   <MoreVertical className="w-4 h-4" />
                 </button>
-                
+
                 {isControlOpen && (
                   <div className="absolute right-0 top-full mt-1 w-48 bg-slate-800 border border-slate-600 rounded-md shadow-lg z-30">
                     <div className="py-1">
                       {services?.map((service) => (
-                        <div key={service.id} className="px-3 py-2 border-b border-slate-700 last:border-b-0">
+                        <div
+                          key={service.id}
+                          className="px-3 py-2 border-b border-slate-700 last:border-b-0"
+                        >
                           <div className="text-xs text-slate-400 mb-2 font-medium">
                             {service.displayName}
                           </div>
@@ -407,9 +458,13 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
                             {service.allowStart && (
                               <button
                                 onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  executeControlAction(service.id, service.host.id, 'start')
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  executeControlAction(
+                                    service.id,
+                                    service.host.id,
+                                    'start'
+                                  );
                                 }}
                                 disabled={isExecutingAction}
                                 className="flex-1 px-2 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 rounded text-white transition-colors flex items-center justify-center gap-1"
@@ -421,9 +476,13 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
                             {service.allowStop && (
                               <button
                                 onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  executeControlAction(service.id, service.host.id, 'stop')
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  executeControlAction(
+                                    service.id,
+                                    service.host.id,
+                                    'stop'
+                                  );
                                 }}
                                 disabled={isExecutingAction}
                                 className="flex-1 px-2 py-1 text-xs bg-red-600 hover:bg-red-500 disabled:bg-slate-600 rounded text-white transition-colors flex items-center justify-center gap-1"
@@ -435,9 +494,13 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
                             {service.allowRestart && (
                               <button
                                 onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  executeControlAction(service.id, service.host.id, 'restart')
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  executeControlAction(
+                                    service.id,
+                                    service.host.id,
+                                    'restart'
+                                  );
                                 }}
                                 disabled={isExecutingAction}
                                 className="flex-1 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 rounded text-white transition-colors flex items-center justify-center gap-1"
@@ -455,43 +518,45 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
               </div>
             </div>
           )}
-          
+
           {/* External Link Icon (top right) - Only when no control dropdown */}
-          {(!isAdmin || !hasLinkedServices) && (
+          {(!isAdmin || !hasLinkedServices || !controlPlaneEnabled) && (
             <ExternalLink className="w-5 h-5 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-4" />
           )}
         </CardHeader>
-        
+
         <CardContent className="pt-0 flex-1 flex flex-col">
           {/* Centered Description */}
           <CardDescription className="text-sm text-slate-400 leading-relaxed flex-1 text-center px-2">
             {description}
           </CardDescription>
-          
+
           {/* Status Indicators at Bottom */}
           <div className="mt-auto space-y-3 pt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div 
+                <div
                   className={`w-3 h-3 rounded-full ${getStatusColor()} ${isRefreshing ? 'animate-pulse' : ''}`}
                   title={getTooltipContent()}
                 />
-                <span className={`text-xs font-medium ${isStatusStale() ? 'text-gray-400' : status.isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span
+                  className={`text-xs font-medium ${isStatusStale() ? 'text-gray-400' : status.isUp ? 'text-emerald-400' : 'text-red-400'}`}
+                >
                   {getStatusText()}
                 </span>
               </div>
-              
+
               {status.latencyMs !== null && (
                 <span className="text-sm font-medium text-slate-400 bg-slate-700/50 px-2 py-1 rounded-md">
                   {formatLatency(status.latencyMs)}
                 </span>
               )}
             </div>
-            
+
             {/* Sparkline and Uptime */}
             {history && (
               <div className="bg-slate-700/30 rounded-md p-3">
-                <Sparkline 
+                <Sparkline
                   data={history.events}
                   width={120}
                   height={24}
@@ -500,7 +565,7 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
                 />
               </div>
             )}
-            
+
             {status.lastChecked && (
               <div className="text-xs text-slate-500 bg-slate-700/30 px-3 py-2 rounded-md">
                 Last checked: {formatLastChecked(status.lastChecked)}
@@ -515,8 +580,8 @@ function LabCardComponent({ id, title, description, url, iconPath, order, servic
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 // Memoize the component to prevent unnecessary re-renders
-export const LabCard = React.memo(LabCardComponent)
+export const LabCard = React.memo(LabCardComponent);

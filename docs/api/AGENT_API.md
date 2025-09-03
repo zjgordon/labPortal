@@ -12,6 +12,14 @@ Authorization: Bearer <agent-token>
 
 The token must match a valid `agentToken` in the Host table.
 
+## Security & Caching
+
+Agent endpoints are secured and never cached:
+
+- **Cache-Control**: `no-store, no-cache, must-revalidate, proxy-revalidate`
+- **Vary**: `Authorization` header to ensure proper cache key generation
+- **Purpose**: Prevents caching of sensitive control actions and agent communications
+
 ## Endpoints
 
 ### GET /api/control/queue
@@ -19,9 +27,11 @@ The token must match a valid `agentToken` in the Host table.
 Get the next queued actions for the authenticated host.
 
 **Query Parameters:**
+
 - `max` (optional): Maximum number of actions to return (1-10, default: 1)
 
 **Response (200 OK):**
+
 ```json
 [
   {
@@ -43,6 +53,7 @@ Get the next queued actions for the authenticated host.
 ```
 
 **Error Responses:**
+
 - `401 Unauthorized`: Valid agent token required
 - `400 Bad Request`: Invalid max parameter
 - `500 Internal Server Error`: Server error
@@ -52,6 +63,7 @@ Get the next queued actions for the authenticated host.
 Report the status update for an action.
 
 **Request Body:**
+
 ```json
 {
   "actionId": "action-id",
@@ -62,11 +74,13 @@ Report the status update for an action.
 ```
 
 **Status Transitions:**
+
 - `queued` → `running`: Action is being executed
 - `running` → `succeeded`: Action completed successfully
 - `running` → `failed`: Action failed with error
 
 **Response (200 OK):**
+
 ```json
 {
   "id": "action-id",
@@ -81,11 +95,16 @@ Report the status update for an action.
   "exitCode": 0,
   "message": "Service started successfully",
   "host": { "id": "host-id", "name": "remote-host" },
-  "service": { "id": "service-id", "unitName": "nginx.service", "displayName": "Nginx" }
+  "service": {
+    "id": "service-id",
+    "unitName": "nginx.service",
+    "displayName": "Nginx"
+  }
 }
 ```
 
 **Error Responses:**
+
 - `401 Unauthorized`: Valid agent token required
 - `400 Bad Request`: Validation error
 - `403 Forbidden`: Action does not belong to this host
@@ -97,11 +116,13 @@ Report the status update for an action.
 Update the host's last seen timestamp.
 
 **Request Body:**
+
 ```json
 {}
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Heartbeat received",
@@ -114,6 +135,7 @@ Update the host's last seen timestamp.
 ```
 
 **Error Responses:**
+
 - `401 Unauthorized`: Valid agent token required
 - `404 Not Found`: Host not found
 - `500 Internal Server Error`: Server error
@@ -121,12 +143,14 @@ Update the host's last seen timestamp.
 ## Agent Workflow
 
 ### 1. Authentication
+
 ```bash
 # Set the agent token for all requests
 export AGENT_TOKEN="your-agent-token-here"
 ```
 
 ### 2. Heartbeat
+
 ```bash
 # Send periodic heartbeat
 curl -X POST http://portal.example.com/api/agents/heartbeat \
@@ -136,6 +160,7 @@ curl -X POST http://portal.example.com/api/agents/heartbeat \
 ```
 
 ### 3. Poll for Actions
+
 ```bash
 # Get next queued action
 curl -H "Authorization: Bearer $AGENT_TOKEN" \
@@ -143,12 +168,14 @@ curl -H "Authorization: Bearer $AGENT_TOKEN" \
 ```
 
 ### 4. Execute Action
+
 ```bash
 # Parse the action response and execute the command
 # Example: systemctl start nginx.service
 ```
 
 ### 5. Report Status
+
 ```bash
 # Report action started
 curl -X POST http://portal.example.com/api/control/report \
@@ -174,6 +201,7 @@ curl -X POST http://portal.example.com/api/control/report \
 ## Example Agent Implementation
 
 ### Python Agent
+
 ```python
 import requests
 import time
@@ -187,7 +215,7 @@ class PortalAgent:
             'Authorization': f'Bearer {agent_token}',
             'Content-Type': 'application/json'
         }
-    
+
     def heartbeat(self):
         """Send heartbeat to portal"""
         try:
@@ -200,7 +228,7 @@ class PortalAgent:
         except Exception as e:
             print(f"Heartbeat failed: {e}")
             return False
-    
+
     def get_next_action(self):
         """Get next queued action"""
         try:
@@ -215,7 +243,7 @@ class PortalAgent:
         except Exception as e:
             print(f"Failed to get action: {e}")
             return None
-    
+
     def report_status(self, action_id, status, exit_code=None, message=None):
         """Report action status"""
         try:
@@ -227,7 +255,7 @@ class PortalAgent:
                 data['exitCode'] = exit_code
             if message:
                 data['message'] = message
-            
+
             response = requests.post(
                 f"{self.portal_url}/api/control/report",
                 headers=self.headers,
@@ -237,45 +265,45 @@ class PortalAgent:
         except Exception as e:
             print(f"Failed to report status: {e}")
             return False
-    
+
     def execute_action(self, action):
         """Execute a systemctl action"""
         try:
             # Report action started
             self.report_status(action['id'], 'running')
-            
+
             # Execute the command
             cmd = f"systemctl {action['kind']} {action['service']['unitName']}"
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            
+
             # Report result
             if result.returncode == 0:
                 self.report_status(
-                    action['id'], 
-                    'succeeded', 
+                    action['id'],
+                    'succeeded',
                     result.returncode,
                     f"Successfully {action['kind']}ed {action['service']['unitName']}"
                 )
             else:
                 self.report_status(
-                    action['id'], 
-                    'failed', 
+                    action['id'],
+                    'failed',
                     result.returncode,
                     f"Failed to {action['kind']} {action['service']['unitName']}: {result.stderr}"
                 )
-                
+
         except Exception as e:
             self.report_status(
-                action['id'], 
-                'failed', 
+                action['id'],
+                'failed',
                 -1,
                 f"Exception during execution: {str(e)}"
             )
-    
+
     def run(self):
         """Main agent loop"""
         print("Portal Agent started")
-        
+
         while True:
             try:
                 # Send heartbeat
@@ -283,7 +311,7 @@ class PortalAgent:
                     print("Heartbeat failed, retrying in 30 seconds...")
                     time.sleep(30)
                     continue
-                
+
                 # Get next action
                 action = self.get_next_action()
                 if action:
@@ -291,10 +319,10 @@ class PortalAgent:
                     self.execute_action(action)
                 else:
                     print("No actions in queue")
-                
+
                 # Wait before next poll
                 time.sleep(10)
-                
+
             except KeyboardInterrupt:
                 print("Agent stopped by user")
                 break
@@ -312,6 +340,7 @@ if __name__ == "__main__":
 ```
 
 ### Bash Agent
+
 ```bash
 #!/bin/bash
 
@@ -339,7 +368,7 @@ report_status() {
     local status="$2"
     local exit_code="$3"
     local message="$4"
-    
+
     local data="{\"actionId\":\"$action_id\",\"status\":\"$status\""
     if [ -n "$exit_code" ]; then
         data="$data,\"exitCode\":$exit_code"
@@ -348,7 +377,7 @@ report_status() {
         data="$data,\"message\":\"$message\""
     fi
     data="$data}"
-    
+
     curl -s -X POST "$PORTAL_URL/api/control/report" \
         -H "Authorization: Bearer $AGENT_TOKEN" \
         -H "Content-Type: application/json" \
@@ -361,12 +390,12 @@ execute_action() {
     local action_id=$(echo "$action_json" | jq -r '.id')
     local kind=$(echo "$action_json" | jq -r '.kind')
     local unit_name=$(echo "$action_json" | jq -r '.service.unitName')
-    
+
     echo "Executing: systemctl $kind $unit_name"
-    
+
     # Report started
     report_status "$action_id" "running"
-    
+
     # Execute command
     if systemctl "$kind" "$unit_name"; then
         report_status "$action_id" "succeeded" 0 "Successfully ${kind}ed $unit_name"
@@ -379,7 +408,7 @@ execute_action() {
 # Main loop
 main() {
     echo "Portal Agent started"
-    
+
     while true; do
         # Send heartbeat
         if ! heartbeat; then
@@ -387,7 +416,7 @@ main() {
             sleep 30
             continue
         fi
-        
+
         # Get next action
         action=$(get_action)
         if [ "$(echo "$action" | jq length)" -gt 0 ]; then
@@ -396,7 +425,7 @@ main() {
         else
             echo "No actions in queue"
         fi
-        
+
         # Wait before next poll
         sleep 10
     done
@@ -408,16 +437,19 @@ main
 ## Security Features
 
 ### Token-Based Authentication
+
 - Each host has a unique agent token
 - Tokens are validated against the database
 - No session management required
 
 ### Host Isolation
+
 - Agents can only access actions for their own host
 - Cross-host access is prevented
 - Token rotation is supported
 
 ### Input Validation
+
 - All inputs are validated using Zod schemas
 - Status transitions are controlled
 - Message length is limited
@@ -425,16 +457,19 @@ main
 ## Error Handling
 
 ### Network Issues
+
 - Implement exponential backoff for failed requests
 - Continue operation after temporary failures
 - Log all errors for debugging
 
 ### Invalid Actions
+
 - Report failed status with error details
 - Continue processing other actions
 - Maintain agent uptime
 
 ### Token Issues
+
 - Stop processing if token becomes invalid
 - Log authentication failures
 - Contact administrator for new token
@@ -442,16 +477,19 @@ main
 ## Monitoring
 
 ### Host Status
+
 - `lastSeenAt` tracks agent activity
 - Monitor for hosts that haven't reported recently
 - Set up alerts for offline agents
 
 ### Action Processing
+
 - Track action completion times
 - Monitor success/failure rates
 - Identify problematic services
 
 ### Agent Health
+
 - Heartbeat frequency indicates agent health
 - Monitor for agents that stop responding
 - Track agent uptime and reliability
@@ -459,21 +497,25 @@ main
 ## Best Practices
 
 ### Token Management
+
 - Rotate agent tokens regularly
 - Use strong, random tokens
 - Store tokens securely on agents
 
 ### Error Handling
+
 - Implement comprehensive error handling
 - Log all failures with context
 - Provide meaningful error messages
 
 ### Performance
+
 - Poll at reasonable intervals (10-30 seconds)
 - Implement connection pooling
 - Use appropriate timeouts
 
 ### Security
+
 - Use HTTPS for all communications
 - Validate all inputs on both sides
 - Monitor for suspicious activity

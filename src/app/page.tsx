@@ -1,147 +1,159 @@
-"use client"
+'use client';
 
-import React, { Suspense, useState, useMemo, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card as UICard, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { LabCard } from '@/components/lab-card'
-import { Input } from '@/components/ui/input'
-import { ExternalLink, Plus, Server, Search } from 'lucide-react'
-import Link from 'next/link'
-
+import React, { Suspense, useState, useMemo, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Card as UICard,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { LabCard } from '@/components/lab-card';
+import { Input } from '@/components/ui/input';
+import { ExternalLink, Plus, Server, Search } from 'lucide-react';
+import Link from 'next/link';
+import { getVersionDisplay } from '@/lib/version';
 
 /**
  * Client-side appearance header component to avoid hydration errors
  * Fetches appearance data and renders instance name
  */
 const AppearanceHeaderText = React.memo(function AppearanceHeaderText() {
-  const [appearance, setAppearance] = useState<{ instanceName: string; headerText: string | null }>({
+  const [appearance, setAppearance] = useState<{
+    instanceName: string;
+    headerText: string | null;
+  }>({
     instanceName: 'Instance',
-    headerText: null
-  })
+    headerText: null,
+  });
 
   useEffect(() => {
     const fetchAppearance = async () => {
       try {
         const response = await fetch('/api/public/appearance', {
           headers: {
-            'Authorization': 'Bearer test-public-token'
-          }
-        })
-        
+            Authorization: 'Bearer test-public-token',
+          },
+        });
+
         if (response.ok) {
-          const data = await response.json()
-          setAppearance(data.data)
+          const data = await response.json();
+          setAppearance(data.data);
         }
       } catch (error) {
-        console.error('Failed to fetch appearance:', error)
+        console.error('Failed to fetch appearance:', error);
       }
-    }
+    };
 
     // Fetch on mount
-    fetchAppearance()
+    fetchAppearance();
 
     // Set up interval to refresh data every 5 seconds
-    const interval = setInterval(fetchAppearance, 5000)
+    const interval = setInterval(fetchAppearance, 5000);
 
     // Cleanup interval on unmount
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
-  return <span>{appearance.instanceName}</span>
-})
+  return <span>{appearance.instanceName}</span>;
+});
 
 /**
  * Client-side appearance header message component
  * Fetches appearance data and renders header message
  */
 const AppearanceHeaderMessage = React.memo(function AppearanceHeaderMessage() {
-  const [appearance, setAppearance] = useState<{ instanceName: string; headerText: string | null }>({
+  const [appearance, setAppearance] = useState<{
+    instanceName: string;
+    headerText: string | null;
+  }>({
     instanceName: 'Instance',
-    headerText: 'Header Message'
-  })
+    headerText: 'Header Message',
+  });
 
   useEffect(() => {
     const fetchAppearance = async () => {
       try {
         const response = await fetch('/api/public/appearance', {
           headers: {
-            'Authorization': 'Bearer test-public-token'
-          }
-        })
-        
+            Authorization: 'Bearer test-public-token',
+          },
+        });
+
         if (response.ok) {
-          const data = await response.json()
-          setAppearance(data.data)
+          const data = await response.json();
+          setAppearance(data.data);
         }
       } catch (error) {
-        console.error('Failed to fetch appearance:', error)
+        console.error('Failed to fetch appearance:', error);
       }
-    }
+    };
 
     // Fetch on mount
-    fetchAppearance()
+    fetchAppearance();
 
     // Set up interval to refresh data every 5 seconds
-    const interval = setInterval(fetchAppearance, 5000)
+    const interval = setInterval(fetchAppearance, 5000);
 
     // Cleanup interval on unmount
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   // Show header message if it exists and is not null
   if (!appearance.headerText) {
-    return null
+    return null;
   }
 
-  return <span>{appearance.headerText}</span>
-})
+  return <span>{appearance.headerText}</span>;
+});
 
 /**
  * Client-side time display component to avoid hydration errors
  * Renders time only after component mounts to prevent server/client mismatch
  */
 const TimeDisplay = React.memo(function TimeDisplay() {
-  const [time, setTime] = useState('')
+  const [time, setTime] = useState('');
 
   useEffect(() => {
     const updateTime = () => {
-      setTime(new Date().toLocaleTimeString())
-    }
-    
-    // Update immediately on mount
-    updateTime()
-    
-    // Update every second for live clock effect
-    const interval = setInterval(updateTime, 1000)
-    
-    // Cleanup interval on unmount
-    return () => clearInterval(interval)
-  }, [])
+      setTime(new Date().toLocaleTimeString());
+    };
 
-  return <span>{time}</span>
-})
+    // Update immediately on mount
+    updateTime();
+
+    // Update every second for live clock effect
+    const interval = setInterval(updateTime, 1000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, []);
+
+  return <span>{time}</span>;
+});
 
 interface LabCardData {
-  id: string
-  title: string
-  description: string
-  url: string
-  iconPath: string | null
-  order: number
-  isEnabled: boolean
-  group: string
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  iconPath: string | null;
+  order: number;
+  isEnabled: boolean;
+  group: string;
   services?: Array<{
-    id: string
-    unitName: string
-    displayName: string
-    allowStart: boolean
-    allowStop: boolean
-    allowRestart: boolean
+    id: string;
+    unitName: string;
+    displayName: string;
+    allowStart: boolean;
+    allowStop: boolean;
+    allowRestart: boolean;
     host: {
-      id: string
-      name: string
-    }
-  }>
+      id: string;
+      name: string;
+    };
+  }>;
 }
 
 /**
@@ -153,66 +165,73 @@ interface LabCardData {
  * - Responsive grid layout
  */
 const LabCardsGrid = React.memo(function LabCardsGrid() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [cards, setCards] = useState<LabCardData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [cards, setCards] = useState<LabCardData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch cards on component mount
   useEffect(() => {
     const fetchCards = async () => {
       try {
-        const response = await fetch('/api/cards', { cache: 'no-store' })
-        
+        const response = await fetch('/api/cards', { cache: 'no-store' });
+
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
-        const data = await response.json()
-        setCards(data)
+
+        const data = await response.json();
+        setCards(data);
       } catch (error) {
-        console.error('Failed to fetch cards:', error)
+        console.error('Failed to fetch cards:', error);
         // Could add error state here for better UX
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-    
-    fetchCards()
-  }, [])
+    };
+
+    fetchCards();
+  }, []);
 
   // Filter and group cards
   const groupedCards = useMemo(() => {
-    if (!cards.length) return {}
+    if (!cards.length) return {};
 
     // Filter cards based on search query
-    const filteredCards = cards.filter(card =>
-      card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.group.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredCards = cards.filter(
+      (card) =>
+        card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.group.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     // Group cards by category
-    const grouped = filteredCards.reduce((acc, card) => {
-      if (!acc[card.group]) {
-        acc[card.group] = []
-      }
-      acc[card.group]!.push(card)
-      return acc
-    }, {} as Record<string, LabCardData[]>)
+    const grouped = filteredCards.reduce(
+      (acc, card) => {
+        if (!acc[card.group]) {
+          acc[card.group] = [];
+        }
+        acc[card.group]!.push(card);
+        return acc;
+      },
+      {} as Record<string, LabCardData[]>
+    );
 
     // Sort groups alphabetically and sort cards within each group by order
-    Object.keys(grouped).forEach(group => {
-      grouped[group]!.sort((a, b) => a.order - b.order)
-    })
+    Object.keys(grouped).forEach((group) => {
+      grouped[group]!.sort((a, b) => a.order - b.order);
+    });
 
-    return grouped
-  }, [cards, searchQuery])
+    return grouped;
+  }, [cards, searchQuery]);
 
   if (isLoading) {
     return (
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {[...Array(6)].map((_, i) => (
-          <UICard key={i} className="animate-pulse h-full bg-slate-800 border-slate-700">
+          <UICard
+            key={i}
+            className="animate-pulse h-full bg-slate-800 border-slate-700"
+          >
             <CardHeader className="pb-4 text-center">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-slate-700 rounded-lg" />
@@ -229,16 +248,19 @@ const LabCardsGrid = React.memo(function LabCardsGrid() {
           </UICard>
         ))}
       </div>
-    )
+    );
   }
 
   if (cards.length === 0) {
     return (
       <div className="text-center py-12">
         <Server className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-2">No Lab Tools Available</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-2">
+          No Lab Tools Available
+        </h3>
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-          There are currently no lab tools configured. Please check back later or contact an administrator.
+          There are currently no lab tools configured. Please check back later
+          or contact an administrator.
         </p>
         <Link href="/admin/login">
           <Button variant="outline" size="sm">
@@ -247,10 +269,10 @@ const LabCardsGrid = React.memo(function LabCardsGrid() {
           </Button>
         </Link>
       </div>
-    )
+    );
   }
 
-  const groupNames = Object.keys(groupedCards).sort()
+  const groupNames = Object.keys(groupedCards).sort();
 
   return (
     <div className="space-y-8">
@@ -267,7 +289,7 @@ const LabCardsGrid = React.memo(function LabCardsGrid() {
       </div>
 
       {/* Grouped Cards */}
-      {groupNames.map(groupName => (
+      {groupNames.map((groupName) => (
         <div key={groupName} className="space-y-4">
           {/* Category Header */}
           <div className="flex items-center space-x-3">
@@ -279,7 +301,8 @@ const LabCardsGrid = React.memo(function LabCardsGrid() {
             </h3>
             <div className="flex-1 h-px bg-slate-700"></div>
             <span className="text-sm text-slate-500 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-              {groupedCards[groupName]!.length} tool{groupedCards[groupName]!.length !== 1 ? 's' : ''}
+              {groupedCards[groupName]!.length} tool
+              {groupedCards[groupName]!.length !== 1 ? 's' : ''}
             </span>
           </div>
 
@@ -305,12 +328,15 @@ const LabCardsGrid = React.memo(function LabCardsGrid() {
       {searchQuery && groupNames.length === 0 && (
         <div className="text-center py-12">
           <Search className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-300 mb-2">No Results Found</h3>
+          <h3 className="text-lg font-semibold text-slate-300 mb-2">
+            No Results Found
+          </h3>
           <p className="text-slate-500 mb-6 max-w-md mx-auto">
-            No lab tools match your search for &quot;{searchQuery}&quot;. Try adjusting your search terms.
+            No lab tools match your search for &quot;{searchQuery}&quot;. Try
+            adjusting your search terms.
           </p>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setSearchQuery('')}
             className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300"
           >
@@ -319,8 +345,8 @@ const LabCardsGrid = React.memo(function LabCardsGrid() {
         </div>
       )}
     </div>
-  )
-})
+  );
+});
 
 /**
  * HomePage - Main portal interface for lab tools
@@ -349,32 +375,34 @@ const HomePage = React.memo(function HomePage() {
                 <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
                   LAB<span className="text-emerald-400">PORTAL</span>
                 </h1>
-                <p className="text-xs text-slate-500 uppercase tracking-wider">Version 0.2dev</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">
+                  {getVersionDisplay()}
+                </p>
               </div>
             </div>
 
-                            {/* Center: Instance Name and Header Message */}
-                <div className="flex-1 flex justify-center px-4">
-                  <div className="max-w-md text-center">
-                    <div className="space-y-1">
-                      {/* Instance Name - Larger, Top */}
-                      <h2 
-                        className="text-lg md:text-xl font-semibold text-slate-100 truncate"
-                        aria-label="Portal instance name"
-                      >
-                        <AppearanceHeaderText />
-                      </h2>
-                      {/* Header Message - Smaller, Bottom */}
-                      <div className="text-sm md:text-base text-slate-300 truncate">
-                        <AppearanceHeaderMessage />
-                      </div>
-                    </div>
-                    {/* Optional: Future clock implementation */}
-                    <span className="text-xs text-slate-500 ml-2">
-                      {/* Clock component would go here when showClock is implemented */}
-                    </span>
+            {/* Center: Instance Name and Header Message */}
+            <div className="flex-1 flex justify-center px-4">
+              <div className="max-w-md text-center">
+                <div className="space-y-1">
+                  {/* Instance Name - Larger, Top */}
+                  <h2
+                    className="text-lg md:text-xl font-semibold text-slate-100 truncate"
+                    aria-label="Portal instance name"
+                  >
+                    <AppearanceHeaderText />
+                  </h2>
+                  {/* Header Message - Smaller, Bottom */}
+                  <div className="text-sm md:text-base text-slate-300 truncate">
+                    <AppearanceHeaderMessage />
                   </div>
                 </div>
+                {/* Optional: Future clock implementation */}
+                <span className="text-xs text-slate-500 ml-2">
+                  {/* Clock component would go here when showClock is implemented */}
+                </span>
+              </div>
+            </div>
 
             {/* Right: System Status */}
             <div className="flex items-center space-x-4">
@@ -389,7 +417,11 @@ const HomePage = React.memo(function HomePage() {
                 </div>
               </div>
               <Link href="/admin/login">
-                <Button variant="outline" size="sm" className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 text-xs px-3 py-1 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 text-xs px-3 py-1 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]"
+                >
                   ADMIN
                 </Button>
               </Link>
@@ -401,37 +433,40 @@ const HomePage = React.memo(function HomePage() {
       <div className="container mx-auto px-6 py-8">
         {/* Lab Tools Grid */}
         <div className="mb-8">
-          <Suspense fallback={
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-              {[...Array(6)].map((_, i) => (
-                <UICard key={i} className="animate-pulse h-full bg-slate-800 border-slate-700">
-                  <CardHeader className="pb-4 text-center">
-                    {/* Centered Icon */}
-                    <div className="flex justify-center mb-4">
-                      <div className="w-16 h-16 bg-slate-700 rounded-lg" />
-                    </div>
-                    {/* Centered Title */}
-                    <div className="h-6 bg-slate-700 rounded mb-2" />
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-3 text-center">
-                      <div className="h-4 bg-slate-700 rounded" />
-                      <div className="h-4 bg-slate-700 rounded w-3/4 mx-auto" />
-                      <div className="h-4 bg-slate-700 rounded w-1/2 mx-auto" />
-                    </div>
-                  </CardContent>
-                </UICard>
-              ))}
-            </div>
-          }>
+          <Suspense
+            fallback={
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                {[...Array(6)].map((_, i) => (
+                  <UICard
+                    key={i}
+                    className="animate-pulse h-full bg-slate-800 border-slate-700"
+                  >
+                    <CardHeader className="pb-4 text-center">
+                      {/* Centered Icon */}
+                      <div className="flex justify-center mb-4">
+                        <div className="w-16 h-16 bg-slate-700 rounded-lg" />
+                      </div>
+                      {/* Centered Title */}
+                      <div className="h-6 bg-slate-700 rounded mb-2" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3 text-center">
+                        <div className="h-4 bg-slate-700 rounded" />
+                        <div className="h-4 bg-slate-700 rounded w-3/4 mx-auto" />
+                        <div className="h-4 bg-slate-700 rounded w-1/2 mx-auto" />
+                      </div>
+                    </CardContent>
+                  </UICard>
+                ))}
+              </div>
+            }
+          >
             <LabCardsGrid />
           </Suspense>
         </div>
-
-
       </div>
     </div>
-  )
-})
+  );
+});
 
-export default HomePage
+export default HomePage;

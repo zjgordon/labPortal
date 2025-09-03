@@ -1,33 +1,34 @@
-"use client"
+'use client';
 
-import { ReactNode, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter, usePathname } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Server, Monitor, Home, Square, Palette, LogOut } from 'lucide-react'
-import { signOut } from 'next-auth/react'
+import { ReactNode, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Server, Monitor, Home, Square, Palette, LogOut } from 'lucide-react';
+import { signOut } from 'next-auth/react';
+import { isControlPlaneEnabled } from '@/lib/control/control-plane';
 
 interface AdminLayoutProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const pathname = usePathname()
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Check if this is the login page
-  const isLoginPage = pathname === '/admin/login'
+  const isLoginPage = pathname === '/admin/login';
 
   // Redirect to login if not authenticated (but not if already on login page)
   useEffect(() => {
-    if (status === 'loading') return // Still loading
-    
+    if (status === 'loading') return; // Still loading
+
     if (!session && !isLoginPage) {
-      router.push('/admin/login')
+      router.push('/admin/login');
     }
-  }, [session, status, router, isLoginPage])
+  }, [session, status, router, isLoginPage]);
 
   // Show loading while checking authentication (but not on login page)
   if (status === 'loading' && !isLoginPage) {
@@ -38,22 +39,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <p className="text-gray-600">Checking authentication...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Don't render admin content if not authenticated (but allow login page)
   if (!session && !isLoginPage) {
-    return null
+    return null;
   }
 
   // If this is the login page, render without the admin navigation
   if (isLoginPage) {
-    return <>{children}</>
+    return <>{children}</>;
   }
 
   const handleSignOut = () => {
-    signOut({ callbackUrl: '/' })
-  }
+    signOut({ callbackUrl: '/' });
+  };
+
+  const controlPlaneEnabled = isControlPlaneEnabled();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -64,37 +67,55 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="flex items-center space-x-8">
               <Link href="/admin" className="flex items-center space-x-2">
                 <Monitor className="h-6 w-6 text-blue-600" />
-                <span className="text-xl font-bold text-gray-900">Lab Portal Admin</span>
+                <span className="text-xl font-bold text-gray-900">
+                  Lab Portal Admin
+                </span>
               </Link>
-              
+
               <div className="flex space-x-1">
                 <Link href="/admin/cards">
-                  <Button variant="ghost" className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center space-x-2"
+                  >
                     <Square className="h-4 w-4" />
                     <span>Cards</span>
                   </Button>
                 </Link>
-                <Link href="/admin/hosts">
-                  <Button variant="ghost" className="flex items-center space-x-2">
-                    <Home className="h-4 w-4" />
-                    <span>Hosts</span>
-                  </Button>
-                </Link>
-                <Link href="/admin/services">
-                  <Button variant="ghost" className="flex items-center space-x-2">
-                    <Server className="h-4 w-4" />
-                    <span>Services</span>
-                  </Button>
-                </Link>
+                {controlPlaneEnabled && (
+                  <>
+                    <Link href="/admin/hosts">
+                      <Button
+                        variant="ghost"
+                        className="flex items-center space-x-2"
+                      >
+                        <Home className="h-4 w-4" />
+                        <span>Hosts</span>
+                      </Button>
+                    </Link>
+                    <Link href="/admin/services">
+                      <Button
+                        variant="ghost"
+                        className="flex items-center space-x-2"
+                      >
+                        <Server className="h-4 w-4" />
+                        <span>Services</span>
+                      </Button>
+                    </Link>
+                  </>
+                )}
                 <Link href="/admin/appearance">
-                  <Button variant="ghost" className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center space-x-2"
+                  >
                     <Palette className="h-4 w-4" />
                     <span>Appearance</span>
                   </Button>
                 </Link>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
                 Logged in as {session?.user?.email}
@@ -114,9 +135,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="py-6">
-        {children}
-      </main>
+      <main className="py-6">{children}</main>
     </div>
-  )
+  );
 }

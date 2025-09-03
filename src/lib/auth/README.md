@@ -5,6 +5,7 @@ This directory contains the new unified authentication system that provides cons
 ## Overview
 
 The new system unifies authentication by:
+
 1. **Principal-based authentication**: Each request gets a validated principal object
 2. **Role separation**: Admin routes only accept session-based auth, agent routes only accept Bearer tokens
 3. **Automatic Cache-Control**: All API responses automatically get `Cache-Control: no-store`
@@ -13,19 +14,21 @@ The new system unifies authentication by:
 ## Principal Types
 
 ### AdminPrincipal
+
 ```typescript
 {
-  type: 'admin'
-  email: string
-  sub: string
+  type: 'admin';
+  email: string;
+  sub: string;
 }
 ```
 
 ### AgentPrincipal
+
 ```typescript
 {
-  type: 'agent'
-  hostId: string
+  type: 'agent';
+  hostId: string;
 }
 ```
 
@@ -34,50 +37,56 @@ The new system unifies authentication by:
 ### Protecting Admin Routes
 
 ```typescript
-import { withAdminAuth, Principal } from '@/lib/auth/wrappers'
+import { withAdminAuth, Principal } from '@/lib/auth/wrappers';
 
-export const POST = withAdminAuth(async (request: NextRequest, principal: Principal) => {
-  // principal is guaranteed to be AdminPrincipal
-  const { email, sub } = principal
-  
-  // Your route logic here
-  return NextResponse.json({ success: true })
-})
+export const POST = withAdminAuth(
+  async (request: NextRequest, principal: Principal) => {
+    // principal is guaranteed to be AdminPrincipal
+    const { email, sub } = principal;
+
+    // Your route logic here
+    return NextResponse.json({ success: true });
+  }
+);
 ```
 
 ### Protecting Agent Routes
 
 ```typescript
-import { withAgentAuth, Principal } from '@/lib/auth/wrappers'
+import { withAgentAuth, Principal } from '@/lib/auth/wrappers';
 
-export const POST = withAgentAuth(async (request: NextRequest, principal: Principal) => {
-  // principal is guaranteed to be AgentPrincipal
-  const { hostId } = principal
-  
-  // Your route logic here
-  return NextResponse.json({ success: true })
-})
+export const POST = withAgentAuth(
+  async (request: NextRequest, principal: Principal) => {
+    // principal is guaranteed to be AgentPrincipal
+    const { hostId } = principal;
+
+    // Your route logic here
+    return NextResponse.json({ success: true });
+  }
+);
 ```
 
 ### Public Routes with No-Cache
 
 ```typescript
-import { withNoCache } from '@/lib/auth/wrappers'
+import { withNoCache } from '@/lib/auth/wrappers';
 
 export const GET = withNoCache(async (request: NextRequest) => {
   // Your route logic here
-  return NextResponse.json({ data: 'public' })
-})
+  return NextResponse.json({ data: 'public' });
+});
 ```
 
 ## Security Features
 
 ### Role Separation
+
 - **Admin routes**: Cannot accept Bearer tokens, only session cookies or API keys
 - **Agent routes**: Cannot accept session cookies, only Bearer tokens
 - **Mixed auth**: Automatically rejected with 403 Forbidden
 
 ### Automatic Headers
+
 - All API responses get `Cache-Control: no-store`
 - Proper error responses with appropriate HTTP status codes
 - Consistent error message format
@@ -88,10 +97,10 @@ The old authentication functions are still available for backward compatibility:
 
 ```typescript
 // Old way (deprecated)
-import { requireAdminAuth, requireAgentAuth } from '@/lib/auth'
+import { requireAdminAuth, requireAgentAuth } from '@/lib/auth';
 
 // New way (recommended)
-import { withAdminAuth, withAgentAuth } from '@/lib/auth/wrappers'
+import { withAdminAuth, withAgentAuth } from '@/lib/auth/wrappers';
 ```
 
 ## Error Handling
@@ -105,6 +114,7 @@ The system automatically handles authentication errors:
 ## Examples
 
 See the following files for complete examples:
+
 - `src/app/api/cards/route.ts` - Mixed public/admin routes
 - `src/app/api/hosts/route.ts` - Admin-only routes
 - `src/app/api/agents/heartbeat/route.ts` - Agent-only routes
@@ -113,6 +123,7 @@ See the following files for complete examples:
 ## Token Management
 
 ### Secure Token Generation
+
 The system now uses cryptographically secure token generation with hashing:
 
 - **Token Generation**: Uses `crypto.randomBytes(32)` for 256-bit entropy
@@ -121,11 +132,13 @@ The system now uses cryptographically secure token generation with hashing:
 - **One-time Reveal**: Plaintext tokens are only returned once during rotation
 
 ### Token Rotation
-- **POST** `/api/hosts/:id/token` - Generate new token (admin only)
-- **GET** `/api/hosts/:id` - Returns only token prefix + rotation date
+
+- **POST** `/api/hosts/:id/token` - Rotate agent token (admin only)
+- **GET** `/api/hosts/:id` - Returns only token prefix + rotation date (never plaintext token)
 - **Security**: Plaintext tokens are never stored or returned after initial generation
 
 ### Migration Notes
+
 - Old `agentToken` field has been replaced with `agentTokenHash`, `agentTokenPrefix`, and `tokenRotatedAt`
 - Existing tokens should be rotated after migration for security
 - Use the new `generateAgentToken()` from `@/lib/auth/token-utils` for new implementations

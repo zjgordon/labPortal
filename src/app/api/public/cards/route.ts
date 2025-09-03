@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { validatePublicToken, createInvalidTokenResponse } from '@/lib/auth/public-token'
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import {
+  validatePublicToken,
+  createInvalidTokenResponse,
+} from '@/lib/auth/public-token';
+import { ResponseHelper } from '@/lib/response-helper';
 
 /**
  * GET /api/public/cards
@@ -10,16 +14,13 @@ import { validatePublicToken, createInvalidTokenResponse } from '@/lib/auth/publ
 export async function GET(request: Request) {
   // Validate public token
   if (!validatePublicToken(request)) {
-    return createInvalidTokenResponse()
+    return createInvalidTokenResponse();
   }
 
   try {
     const cards = await prisma.card.findMany({
       where: { isEnabled: true },
-      orderBy: [
-        { group: 'asc' },
-        { order: 'asc' }
-      ],
+      orderBy: [{ group: 'asc' }, { order: 'asc' }],
       select: {
         id: true,
         title: true,
@@ -32,17 +33,14 @@ export async function GET(request: Request) {
             lastChecked: true,
             latencyMs: true,
             message: true,
-          }
-        }
-      }
-    })
+          },
+        },
+      },
+    });
 
-    return NextResponse.json(cards)
+    return ResponseHelper.success(cards, 'public');
   } catch (error) {
-    console.error('Error fetching public cards:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch cards' },
-      { status: 500 }
-    )
+    console.error('Error fetching public cards:', error);
+    return ResponseHelper.error('Failed to fetch cards', 'public', 500);
   }
 }

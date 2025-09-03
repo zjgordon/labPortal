@@ -18,6 +18,14 @@ The token is configured via the `READONLY_PUBLIC_TOKEN` environment variable.
 - **Read-Only**: No admin or control operations are available
 - **Safe Data**: Sensitive information (like raw URLs) is excluded from responses
 
+## Caching
+
+All public endpoints use optimized caching for performance:
+
+- **Cache-Control**: `public, max-age=5, stale-while-revalidate=30`
+- **Purpose**: 5-second cache with 30-second stale-while-revalidate for external integrations
+- **Benefits**: Reduced server load while maintaining near real-time data
+
 ## Endpoints
 
 ### GET /api/public/cards
@@ -25,6 +33,7 @@ The token is configured via the `READONLY_PUBLIC_TOKEN` environment variable.
 Returns a list of all enabled cards with safe information only.
 
 **Response:**
+
 ```json
 [
   {
@@ -49,6 +58,7 @@ Returns a list of all enabled cards with safe information only.
 Returns an overall status summary for all enabled cards.
 
 **Response:**
+
 ```json
 {
   "timestamp": "2024-01-01T12:00:00.000Z",
@@ -89,10 +99,12 @@ Returns an overall status summary for all enabled cards.
 Returns status history for a specific card.
 
 **Parameters:**
+
 - `cardId` (required): The ID of the card
 - `range` (required): Either `24h` or `7d`
 
 **Response:**
+
 ```json
 {
   "cardId": "card_id",
@@ -147,15 +159,16 @@ const token = 'YOUR_PUBLIC_TOKEN';
 const baseUrl = 'http://localhost:3000';
 
 // Get cards
-const cards = await fetch(`${baseUrl}/api/public/cards?token=${token}`)
-  .then(res => res.json());
+const cards = await fetch(`${baseUrl}/api/public/cards?token=${token}`).then(
+  (res) => res.json()
+);
 
 // Get summary with Authorization header
 const summary = await fetch(`${baseUrl}/api/public/status/summary`, {
   headers: {
-    'Authorization': `Bearer ${token}`
-  }
-}).then(res => res.json());
+    Authorization: `Bearer ${token}`,
+  },
+}).then((res) => res.json());
 ```
 
 ## Error Responses
@@ -189,6 +202,7 @@ Use the provided test script to verify the endpoints work correctly:
 ```
 
 Example:
+
 ```bash
 ./scripts/test-public-api.sh http://localhost:3000 your-token-here
 ```
