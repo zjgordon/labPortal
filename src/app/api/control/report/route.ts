@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { requireAgentAuth, getHostFromToken } from '@/lib/auth'
+import { withAgentAuth } from '@/lib/auth/wrappers'
+import type { Principal } from '@/lib/auth/principal'
 import { z } from 'zod'
+import { ActionFSM } from '@/lib/control/fsm'
+import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 
 const prisma = new PrismaClient()
 
@@ -18,20 +21,13 @@ const actionReportSchema = z.object({
 /**
  * POST /api/control/report - Report action status update
  */
-export async function POST(request: NextRequest) {
+export const POST = withAgentAuth(async (request: NextRequest, principal: Principal) => {
   try {
-    // Check agent authentication
-    const authError = await requireAgentAuth(request)
-    if (authError) return authError
-
-    // Get the host from the token
-    const host = await getHostFromToken(request)
-    if (!host) {
-      return NextResponse.json(
-        { error: 'Host not found for token' },
-        { status: 404 }
-      )
+    // The principal is already validated and contains the hostId
+    if (principal.type !== 'agent') {
+      throw new Error('Expected agent principal')
     }
+    const { hostId } = principal
 
     const body = await request.json()
     
@@ -48,16 +44,29 @@ export async function POST(request: NextRequest) {
     })
     
     if (!action) {
-      return NextResponse.json(
-        { error: 'Action not found' },
-        { status: 404 }
+      return createErrorResponse(
+        ErrorCodes.NOT_FOUND,
+        'Action not found',
+        404
       )
     }
     
-    if (action.hostId !== host.id) {
-      return NextResponse.json(
-        { error: 'Action does not belong to this host' },
-        { status: 403 }
+    if (action.hostId !== hostId) {
+      return createErrorResponse(
+        ErrorCodes.HOST_MISMATCH,
+        'Action does not belong to this host',
+        403
+      )
+    }
+
+    // Validate state transition using FSM
+    try {
+      ActionFSM.guard(action.status as any, validatedData.status)
+    } catch (fsmError) {
+      return createErrorResponse(
+        ErrorCodes.INVALID_STATE_TRANSITION,
+        `Invalid state transition from ${action.status} to ${validatedData.status}`,
+        400
       )
     }
     
@@ -111,15 +120,17 @@ export async function POST(request: NextRequest) {
     console.error('Error reporting action status:', error)
     
     if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.message },
-        { status: 400 }
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'Validation error',
+        400
       )
     }
     
-    return NextResponse.json(
-      { error: 'Failed to report action status' },
-      { status: 500 }
+    return createErrorResponse(
+      ErrorCodes.INTERNAL_ERROR,
+      'Failed to report action status',
+      500
     )
   }
-}
+})

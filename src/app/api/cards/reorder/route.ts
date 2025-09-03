@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { reorderSchema } from '@/lib/validation'
+import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 
 // POST /api/cards/reorder - Reorder cards (protected)
 export async function POST(request: NextRequest) {
@@ -24,16 +25,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.message },
-        { status: 400 }
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'Validation failed',
+        400
       )
     }
 
     console.error('Error reordering cards:', error)
-    return NextResponse.json(
-      { error: 'Failed to reorder cards' },
-      { status: 500 }
+    return createErrorResponse(
+      ErrorCodes.INTERNAL_ERROR,
+      'Failed to reorder cards',
+      500
     )
   }
 }

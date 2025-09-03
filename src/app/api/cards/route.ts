@@ -4,6 +4,7 @@ import { createCardSchema } from '@/lib/validation'
 import { withNoCache, withAdminAuth } from '@/lib/auth/wrappers'
 import type { Principal } from '@/lib/auth/principal'
 import { verifyOrigin, getAdminCorsHeaders } from '@/lib/auth/csrf-protection'
+import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 
 // GET /api/cards - Public route for enabled cards
 export const GET = withNoCache(async () => {
@@ -38,9 +39,10 @@ export const GET = withNoCache(async () => {
     return NextResponse.json(cards)
   } catch (error) {
     console.error('Error fetching cards:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch cards' },
-      { status: 500 }
+    return createErrorResponse(
+      ErrorCodes.INTERNAL_ERROR,
+      'Failed to fetch cards',
+      500
     )
   }
 })
@@ -50,9 +52,10 @@ export const POST = withAdminAuth(async (request: NextRequest, principal: Princi
   try {
     // CSRF protection for state-changing methods
     if (!verifyOrigin(request)) {
-      return NextResponse.json(
-        { error: 'CSRF protection: Invalid origin' },
-        { status: 403 }
+      return createErrorResponse(
+        ErrorCodes.FORBIDDEN,
+        'CSRF protection: Invalid origin',
+        403
       )
     }
     

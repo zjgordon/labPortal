@@ -32,6 +32,8 @@ A modern, cyberpunk-styled laboratory control panel and **control plane** built 
 - **Rate Limiting** - Protection against abuse and overload
 - **API Key Authentication** - Secure authentication for automation and CI/CD
 - **Guard Rails** - Enterprise-grade rate limiting and audit logging
+- **Origin/CSRF Protection** - Strict origin validation for state-changing operations
+- **Agent Separation** - Complete isolation between admin and agent endpoints
 
 ### 🎮 Control Plane & Infrastructure
 - **Host Management** - Add, configure, and monitor infrastructure hosts
@@ -40,6 +42,65 @@ A modern, cyberpunk-styled laboratory control panel and **control plane** built 
 - **Remote Agents** - Token-based agent system for distributed execution
 - **Action Queue** - Comprehensive action lifecycle management
 - **Health Monitoring** - Agent heartbeat and status reporting
+
+## 📡 API Endpoints & Error Handling
+
+### Endpoint Categories
+
+#### Admin Endpoints (`/api/admin/*`, `/api/cards/*`, `/api/hosts/*`, `/api/services/*`)
+- **Authentication**: Session-based (NextAuth.js) or API key (`x-api-key`)
+- **Caching**: `Cache-Control: no-store` (no caching)
+- **Error Format**: Uniform error responses with codes and messages
+- **CSRF Protection**: Origin validation for state-changing operations
+
+#### Agent Endpoints (`/api/agents/*`, `/api/control/*`)
+- **Authentication**: Bearer token in `Authorization` header
+- **Caching**: `Cache-Control: no-store` + `Vary: Authorization`
+- **Error Format**: Uniform error responses with codes and messages
+- **Security**: Reject requests with cookies, enforce token-only auth
+
+#### Public Endpoints (`/api/public/*`, `/api/status`)
+- **Authentication**: None required
+- **Caching**: `Cache-Control: max-age=5, stale-while-revalidate=30`
+- **Error Format**: Uniform error responses with codes and messages
+
+### Error Response Format
+All endpoints return errors in a consistent format:
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error description"
+  }
+}
+```
+
+### Common Error Codes
+- `UNAUTHORIZED` - Authentication required
+- `FORBIDDEN` - Access denied
+- `INVALID_TOKEN` - Invalid agent token
+- `VALIDATION_ERROR` - Input validation failed
+- `NOT_FOUND` - Resource not found
+- `INVALID_STATE_TRANSITION` - Business logic violation
+- `INTERNAL_ERROR` - Server error
+
+### Queue Long-Poll Semantics
+The `/api/control/queue` endpoint supports long-polling:
+- **204 No Content**: No actions available (normal for empty queues)
+- **200 OK**: Actions found and returned
+- **Polling**: Use `wait` parameter (0-25 seconds) for efficient waiting
+
+### One-Time Token System
+- **Agent Authentication**: Bearer tokens for secure agent identification
+- **Token Hashing**: Tokens are hashed before storage (never stored in plain text)
+- **Host Binding**: Each token is bound to a specific host for isolation
+- **Secure Storage**: Token hashes stored in database, original tokens never logged
+
+### Idempotency Support
+- **Idempotency Keys**: Use `Idempotency-Key` header for safe retry operations
+- **Action Deduplication**: Prevents duplicate actions when retrying failed requests
+- **Key Format**: UUID v4 recommended for global uniqueness
+- **Expiration**: Keys expire after 90 days for automatic cleanup
 
 ## 🚀 Quick Start
 

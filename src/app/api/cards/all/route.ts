@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 
 // GET /api/cards/all - Get all cards for admin (protected)
 export async function GET() {
@@ -17,9 +18,10 @@ export async function GET() {
     return NextResponse.json(cards)
   } catch (error) {
     console.error('Error fetching all cards:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch cards' },
-      { status: 500 }
+    return createErrorResponse(
+      ErrorCodes.INTERNAL_ERROR,
+      'Failed to fetch cards',
+      500
     )
   }
 }

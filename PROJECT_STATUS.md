@@ -267,6 +267,16 @@
 - ✅ **Documentation**: Comprehensive guides and troubleshooting
 - ✅ **CI/CD Ready**: Designed for automated testing pipelines
 
+### 17. Final Polish & Production Readiness
+- ✅ **Uniform Error Handling**: Consistent error format across all endpoints
+- ✅ **Cache Control Optimization**: 
+  - Admin/Agent: `no-store` for security
+  - Public Status: `max-age=5, stale-while-revalidate=30` for performance
+- ✅ **Error Code Standardization**: Structured error codes for programmatic handling
+- ✅ **Security Headers**: Proper Vary headers and CSRF protection
+- ✅ **API Documentation**: Comprehensive endpoint documentation with examples
+- ✅ **Production Hardening**: Agent endpoint isolation and cookie rejection
+
 #### Smoke Test Features
 - **Fast Validation**: Complete flow testing in 3-10 minutes
 - **No UI Required**: Pure API-based testing with curl
@@ -318,6 +328,42 @@ The Lab Portal project is now fully configured and ready for development and pro
 
 - **Email**: `admin@local` (fixed)
 - **Password**: Set via `ADMIN_PASSWORD` environment variable (default: `admin123`)
+
+## 📡 Final API Architecture
+
+### Endpoint Categories & Security Model
+
+#### Admin Endpoints
+- **Authentication**: Session-based (NextAuth.js) + API key fallback
+- **Caching**: `Cache-Control: no-store` (no caching for security)
+- **CSRF Protection**: Origin validation for state-changing operations
+- **Error Format**: `{ error: { code: string, message: string } }`
+
+#### Agent Endpoints  
+- **Authentication**: Bearer token only (reject cookies)
+- **Caching**: `Cache-Control: no-store` + `Vary: Authorization`
+- **Security**: Complete isolation from admin session system
+- **Error Format**: `{ error: { code: string, message: string } }`
+
+#### Public Endpoints
+- **Authentication**: None required
+- **Caching**: `Cache-Control: max-age=5, stale-while-revalidate=30`
+- **Performance**: Optimized for frequent status checks
+- **Error Format**: `{ error: { code: string, message: string } }`
+
+### Key Security Features
+- **Agent Separation**: Complete isolation between admin and agent systems
+- **Token Hashing**: Agent tokens never stored in plain text
+- **Origin Validation**: CSRF protection for state-changing operations
+- **Rate Limiting**: Admin-specific action limits (10/minute)
+- **Audit Logging**: Comprehensive action lifecycle tracking
+
+### Error Code System
+- **Authentication**: `UNAUTHORIZED`, `FORBIDDEN`, `INVALID_TOKEN`
+- **Validation**: `VALIDATION_ERROR`, `INVALID_PARAMETERS`
+- **Resources**: `NOT_FOUND`, `ALREADY_EXISTS`, `CONFLICT`
+- **Business Logic**: `INVALID_STATE_TRANSITION`, `ACTION_LOCKED`
+- **System**: `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE`
 
 ## 📁 Project Structure
 
@@ -554,3 +600,739 @@ The Lab Portal is now ready for production deployment with:
 - **Docker support**: Production-ready containerization with health checks
 - **API key authentication**: Secure automation and CI/CD integration
 - **Background services**: Automated status monitoring, data pruning, and cron management
+
+## 🔐 New: Unified Authentication System with Token Hashing and CSRF Protection
+
+### 26. Unified Authentication System
+- ✅ **Principal-Based Authentication**: New type-safe authentication system with `AdminPrincipal` and `AgentPrincipal` types
+- ✅ **Role Separation**: Strict separation between admin routes (session-based) and agent routes (Bearer token)
+- ✅ **Automatic Security Headers**: All API responses automatically get `Cache-Control: no-store`
+- ✅ **Wrapper Functions**: Easy-to-use route protection with `withAdminAuth`, `withAgentAuth`, and `withNoCache`
+- ✅ **Backward Compatibility**: Legacy auth functions maintained during transition period
+- ✅ **Type Safety**: Full TypeScript support with proper principal type definitions
+
+#### Authentication Wrappers
+- **`withAdminAuth(handler)`**: Protects admin routes with session validation
+- **`withAgentAuth(handler)`**: Protects agent routes with Bearer token validation
+- **`withNoCache(handler)`**: Adds no-cache headers to public routes
+- **Automatic Principal Injection**: Route handlers receive validated principal as parameter
+
+#### Principal Types
+```typescript
+type AdminPrincipal = {
+  type: 'admin'
+  email: string
+  sub: string
+}
+
+type AgentPrincipal = {
+  type: 'agent'
+  hostId: string
+}
+```
+
+### 27. Secure Token Management System
+- ✅ **Cryptographic Token Generation**: Uses `crypto.randomBytes(32)` for 256-bit entropy
+- ✅ **Token Hashing**: SHA-256 hashing for secure storage (never store plaintext tokens)
+- ✅ **Token Prefixes**: First 8 characters for identification (never the full token)
+- ✅ **One-Time Reveal**: Plaintext tokens only returned once during rotation
+- ✅ **Automatic Rotation Tracking**: `tokenRotatedAt` timestamp for audit purposes
+
+#### Database Schema Changes
+- **Replaced**: `Host.agentToken` (plaintext)
+- **Added**: `Host.agentTokenHash` (SHA-256 hash)
+- **Added**: `Host.agentTokenPrefix` (first 8 characters)
+- **Added**: `Host.tokenRotatedAt` (rotation timestamp)
+
+#### Token API Endpoints
+- **POST** `/api/hosts/:id/token` - Generate new token (admin only)
+  - Returns plaintext token once for immediate use
+  - Stores only hash, prefix, and rotation timestamp
+- **GET** `/api/hosts/:id` - Returns only token prefix + rotation date
+  - Never exposes the actual token
+  - Provides audit trail for token management
+
+#### Security Features
+- **No Plaintext Storage**: Tokens are immediately hashed upon generation
+- **One-Time Access**: Plaintext tokens cannot be retrieved after initial generation
+- **Audit Trail**: Complete history of token rotations and timestamps
+- **Prefix Identification**: Easy identification without security risk
+
+### 28. CSRF Protection System
+- ✅ **Origin Verification**: Validates `Origin` header for all state-changing methods
+- ✅ **Configurable Allowlist**: Environment-based origin configuration via `ADMIN_ALLOWED_ORIGINS`
+- ✅ **Method-Specific Rules**: GET requests allow missing Origin, write operations require valid Origin
+- ✅ **Exact Matching**: No wildcard or partial origin matching for security
+- ✅ **Comprehensive Logging**: Audit trail for all CSRF protection attempts
+
+#### CSRF Protection Rules
+- **GET Requests**: Missing Origin header allowed (read-only operations)
+- **POST/PUT/PATCH/DELETE**: Valid Origin header required
+- **Origin Validation**: Exact match against configurable allowlist
+- **Immediate Rejection**: 403 status for invalid origins
+
+#### CORS Strategy
+- **Allowed Origins**: Set `Access-Control-Allow-Origin` to specific origin
+- **Unknown Origins**: Omit header entirely to prevent cross-origin requests
+- **No Wildcards**: Never use `Access-Control-Allow-Origin: *`
+- **Method Support**: GET, POST, PUT, PATCH, DELETE, OPTIONS
+- **Header Support**: Content-Type, Authorization, X-API-Key
+- **Credentials**: Support cookies and authentication headers
+
+#### Protected Routes
+All admin routes with state-changing methods now include CSRF protection:
+- `POST /api/hosts` - Create host
+- `PUT /api/hosts/:id` - Update host
+- `DELETE /api/hosts/:id` - Delete host
+- `POST /api/hosts/:id/token` - Rotate agent token
+- `POST /api/cards` - Create card
+- And all other admin write operations
+
+### 29. Enhanced Security Features
+- ✅ **Automatic Cache Control**: All API responses get `Cache-Control: no-store`
+- ✅ **Security Headers**: Enhanced middleware with CORS and security headers
+- ✅ **Input Validation**: Updated validation schemas without agentToken field
+- ✅ **Error Handling**: Comprehensive CSRF error responses with proper status codes
+- ✅ **Audit Logging**: Detailed logging of all security events and failures
+
+#### Security Headers
+- **Cache-Control**: `no-store` for all API routes
+- **CORS Headers**: Properly configured for admin routes
+- **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
+- **Content Security Policy**: Strict CSP for admin pages
+
+#### Error Handling
+- **CSRF Failures**: 403 status with detailed error messages
+- **Authentication Failures**: 401 status for invalid credentials
+- **Validation Errors**: 400 status for invalid input data
+- **Consistent Format**: Standardized error response structure
+
+### 30. Migration and Compatibility
+- ✅ **Database Migration**: New migration for token hashing schema
+- ✅ **Migration Script**: Node.js script for converting existing tokens
+- ✅ **Seed Data Updates**: Updated seed script for new schema
+- ✅ **Backward Compatibility**: Legacy auth functions maintained during transition
+- ✅ **Documentation**: Comprehensive migration guides and examples
+
+#### Migration Process
+1. **Schema Update**: Apply new Prisma migration
+2. **Data Migration**: Run migration script to hash existing tokens
+3. **Token Rotation**: Generate new tokens for all hosts
+4. **Cleanup**: Remove old agentToken column
+5. **Verification**: Test authentication with new system
+
+#### Migration Scripts
+- **`prisma/migrate-tokens.sql`**: Database migration documentation
+- **`scripts/migrate-tokens.js`**: Node.js migration script
+- **Automatic Hashing**: Converts existing plaintext tokens to hashed format
+- **Audit Trail**: Records all migration activities
+
+### 31. Documentation and Testing
+- ✅ **Comprehensive README**: Complete authentication system documentation
+- ✅ **CSRF Protection Guide**: Detailed security implementation guide
+- ✅ **API Examples**: Usage examples for all new features
+- ✅ **Migration Notes**: Step-by-step migration instructions
+- ✅ **Testing Examples**: Valid and invalid request patterns
+
+#### Documentation Coverage
+- **Authentication System**: Principal types, wrappers, and usage patterns
+- **Token Management**: Generation, hashing, and rotation procedures
+- **CSRF Protection**: Configuration, implementation, and troubleshooting
+- **Migration Guide**: Complete migration process documentation
+- **Best Practices**: Security recommendations and implementation tips
+
+#### Testing Support
+- **Origin Testing**: Examples of valid and invalid origins
+- **Token Testing**: Token generation and validation testing
+- **CSRF Testing**: Cross-origin request testing scenarios
+- **Migration Testing**: Token conversion and system validation
+
+## 🚀 Enhanced Production Readiness
+
+The Lab Portal now includes enterprise-grade security features:
+
+### Security Improvements
+- **Token Security**: No plaintext token storage or exposure
+- **CSRF Protection**: Comprehensive cross-origin request protection
+- **Origin Validation**: Strict origin allowlist for admin operations
+- **Audit Logging**: Complete security event tracking
+- **Automatic Headers**: Security headers on all API responses
+
+### Authentication Enhancements
+- **Type Safety**: Full TypeScript support for authentication
+- **Role Separation**: Strict admin/agent authentication separation
+- **Principal System**: Consistent authentication context across routes
+- **Wrapper Functions**: Easy-to-use route protection patterns
+
+### Operational Benefits
+- **Token Management**: Secure, auditable token rotation system
+- **CSRF Prevention**: Protection against cross-site request forgery
+- **Origin Control**: Configurable origin allowlist for flexibility
+- **Migration Support**: Smooth transition from legacy system
+- **Comprehensive Logging**: Security monitoring and audit capabilities
+
+## 🔒 Security Status
+
+The Lab Portal now implements **enterprise-grade security** with:
+
+1. **Unified Authentication**: Type-safe, principal-based authentication system
+2. **Secure Token Management**: Cryptographic hashing with one-time reveal
+3. **CSRF Protection**: Origin verification for all state-changing operations
+4. **Automatic Security Headers**: Cache control and CORS protection
+5. **Comprehensive Logging**: Security event tracking and audit trails
+6. **Input Validation**: Enhanced validation without security vulnerabilities
+7. **Role Separation**: Strict admin/agent authentication boundaries
+8. **Migration Support**: Secure transition from legacy systems
+
+## 🛡️ Agent Endpoint Hardening and Control System Enhancement
+
+### 32. Agent Endpoint Security Hardening
+- ✅ **Middleware-Based Hardening**: Enhanced `src/middleware.ts` to enforce security rules for agent endpoints
+- ✅ **Cookie Rejection**: All agent endpoints return 400 "cookies not allowed" if `Cookie` header present
+- ✅ **Authorization Enforcement**: Strict `Authorization: Bearer` header requirement for agent endpoints
+- ✅ **Security Headers**: All agent responses include `Cache-Control: no-store` and `Vary: Authorization`
+- ✅ **Protected Routes**: Applied to `/api/agents/*`, `/api/control/queue`, and `/api/control/report`
+
+#### Agent Endpoint Security Rules
+- **Cookie Rejection**: Immediate 400 response for any cookie presence
+- **Token Validation**: Bearer token required in Authorization header
+- **Host Lookup**: Token hash validation against Host.agentTokenHash
+- **Principal Injection**: Attaches `{type:'agent', hostId}` to request context
+- **Response Headers**: Consistent security headers on all responses
+
+#### Implementation Details
+```typescript
+// Middleware agent endpoint hardening
+const isAgentEndpoint = pathname.startsWith('/api/agents') ||
+                       pathname === '/api/control/queue' ||
+                       pathname === '/api/control/report'
+
+if (isAgentEndpoint) {
+  // Reject cookies (400)
+  if (req.headers.get('cookie')) {
+    return new NextResponse(/* 400 response */)
+  }
+  
+  // Require Authorization header (401)
+  if (!req.headers.get('authorization')?.startsWith('Bearer ')) {
+    return new NextResponse(/* 401 response */)
+  }
+}
+```
+
+### 33. Enhanced Queue Endpoint for Agent Polling
+- ✅ **Parameter Support**: `max` (1-10, default 1) and `wait` (0-25 seconds) query parameters
+- ✅ **Polling Logic**: Intelligent polling with 500ms intervals when `wait > 0`
+- ✅ **Action Locking**: Atomic database transactions for action status updates
+- ✅ **204 No Content**: Proper response when no actions available after polling
+- ✅ **Connection Keep-Alive**: `Connection: keep-alive` header for persistent connections
+
+#### Queue Endpoint Features
+- **Max Actions**: Limit number of actions returned (1-10 range)
+- **Wait Polling**: Configurable wait time with intelligent polling
+- **Atomic Locking**: Database transactions ensure data consistency
+- **Status Transitions**: Actions locked with `status=running` and `startedAt=now()`
+- **Host Isolation**: Only actions for authenticated host are returned
+
+#### Polling Algorithm
+```typescript
+if (actions.length === 0 && wait > 0) {
+  const startTime = Date.now()
+  const pollInterval = 500
+  
+  while (actions.length === 0 && (Date.now() - startTime) < (wait * 1000)) {
+    await new Promise(resolve => setTimeout(resolve, pollInterval))
+    actions = await getAndLockActions()
+  }
+}
+```
+
+#### Response Behavior
+- **200 OK**: JSON array of actions when available
+- **204 No Content**: No actions found after polling
+- **400 Bad Request**: Invalid parameters (max/wait out of range)
+- **401 Unauthorized**: Missing or invalid Authorization header
+- **500 Internal Server Error**: Server-side errors
+
+### 34. Finite State Machine for Action Lifecycle
+- ✅ **State Machine Implementation**: `src/lib/control/fsm.ts` with safe state transitions
+- ✅ **Valid Transitions**: `queued -> running -> succeeded|failed` with strict validation
+- ✅ **Transition Guarding**: `ActionFSM.guard(from, to)` throws on invalid transitions
+- ✅ **State Utilities**: Helper functions for common state checks and validations
+- ✅ **Comprehensive Testing**: Unit tests covering all transitions and edge cases
+
+#### FSM State Transitions
+```typescript
+const VALID_TRANSITIONS = [
+  { from: 'queued', to: 'running', description: 'Action started execution' },
+  { from: 'running', to: 'succeeded', description: 'Action completed successfully' },
+  { from: 'running', to: 'failed', description: 'Action failed during execution' }
+]
+```
+
+#### FSM Integration Points
+- **Action Creation**: Validates initial state transitions
+- **Local Execution**: Guards `queued -> running -> succeeded|failed`
+- **Agent Queue**: Validates `queued -> running` before locking
+- **Status Reporting**: Guards all reported status changes
+- **Error Handling**: Ensures failed actions follow valid paths
+
+#### State Utilities
+```typescript
+export const ActionStateUtils = {
+  canStart: (status: ActionStatus): boolean => 
+    ActionFSM.isValidTransition(status, 'running'),
+  canComplete: (status: ActionStatus): boolean => 
+    status === 'running',
+  isFinal: (status: ActionStatus): boolean => 
+    ActionFSM.isTerminal(status),
+  getNextStates: (status: ActionStatus): ActionStatus[] => 
+    ActionFSM.getValidTargets(status)
+}
+```
+
+### 35. Idempotency Support for Action Creation
+- ✅ **Idempotency Key**: `Idempotency-Key` header support for deduplication
+- ✅ **Database Schema**: Added `idempotencyKey` field with unique constraint
+- ✅ **Duplicate Detection**: Returns existing action if key already exists
+- ✅ **Key Storage**: Stores idempotency key with new actions
+- ✅ **Migration Support**: Manual migration for existing databases
+
+#### Idempotency Implementation
+```typescript
+// Check for existing action with same key
+const idempotencyKey = request.headers.get('idempotency-key')
+if (idempotencyKey) {
+  const existingAction = await prisma.action.findUnique({
+    where: { idempotencyKey }
+  })
+  if (existingAction) {
+    return NextResponse.json(existingAction, { status: 200 })
+  }
+}
+
+// Create new action with key
+const action = await prisma.action.create({
+  data: {
+    // ... action data
+    idempotencyKey: idempotencyKey || null
+  }
+})
+```
+
+#### Database Schema Changes
+```prisma
+model Action {
+  // ... existing fields
+  idempotencyKey String? @unique
+  // ... relationships
+}
+```
+
+#### Migration Process
+- **Schema Update**: Added `idempotencyKey` column with unique constraint
+- **Manual Migration**: Created migration file for existing databases
+- **Data Integrity**: Unique constraint prevents duplicate keys
+- **Backward Compatibility**: Existing actions work without changes
+
+### 36. Comprehensive FSM Integration
+- ✅ **Route Integration**: FSM validation in all action-related endpoints
+- ✅ **State Consistency**: Prevents invalid state transitions across the system
+- ✅ **Error Handling**: Clear error messages for invalid transitions
+- ✅ **Audit Trail**: All state changes logged with validation results
+
+#### Integration Points
+- **`/api/control/actions`**: Local execution state transitions
+- **`/api/control/queue`**: Action locking state validation
+- **`/api/control/report`**: Agent status reporting validation
+- **Error Responses**: Detailed error messages for FSM violations
+
+#### Error Handling
+```typescript
+try {
+  ActionFSM.guard(action.status as any, validatedData.status)
+} catch (fsmError) {
+  return NextResponse.json({
+    error: 'Invalid state transition',
+    details: fsmError instanceof Error ? fsmError.message : 'Unknown FSM error',
+    currentStatus: action.status,
+    requestedStatus: validatedData.status
+  }, { status: 400 })
+}
+```
+
+### 37. Enhanced Testing and Validation
+- ✅ **Unit Tests**: Comprehensive FSM testing with Jest
+- ✅ **Transition Testing**: All valid and invalid transitions covered
+- ✅ **Edge Cases**: Boundary conditions and error scenarios
+- ✅ **Integration Testing**: End-to-end validation of state consistency
+
+#### Test Coverage
+- **Valid Transitions**: All allowed state changes
+- **Invalid Transitions**: Rejected state changes with proper errors
+- **State Utilities**: Helper function validation
+- **Error Messages**: Clear and informative error reporting
+- **Boundary Conditions**: Edge cases and error scenarios
+
+#### Test Results
+```bash
+✓ ActionFSM validates valid transitions
+✓ ActionFSM rejects invalid transitions
+✓ ActionFSM provides valid target states
+✓ ActionStateUtils provides correct state information
+✓ FSM handles edge cases gracefully
+```
+
+### 38. Documentation and API Reference
+- ✅ **Agent Endpoint Hardening**: Security implementation guide
+- ✅ **Queue Endpoint Behavior**: Comprehensive endpoint documentation
+- ✅ **Control System FSM**: State machine and idempotency guide
+- ✅ **API Examples**: Usage patterns and error handling
+- ✅ **Migration Notes**: Database schema update instructions
+
+#### Documentation Coverage
+- **Security Implementation**: Agent endpoint hardening details
+- **API Behavior**: Queue endpoint parameters and responses
+- **State Management**: FSM transitions and validation
+- **Idempotency**: Deduplication implementation and usage
+- **Error Handling**: Comprehensive error response documentation
+
+#### API Reference
+- **Headers**: Required and optional headers for each endpoint
+- **Parameters**: Query parameter validation and ranges
+- **Responses**: Status codes, headers, and response formats
+- **Error Codes**: Detailed error response documentation
+- **Examples**: Request/response examples for common scenarios
+
+## 🎯 Enhanced Control System Status
+
+The Lab Portal control system now provides:
+
+### Security Enhancements
+- **Agent Endpoint Hardening**: Comprehensive security for agent communications
+- **Cookie Rejection**: Prevents session-based attacks on agent endpoints
+- **Token Validation**: Secure Bearer token authentication
+- **Security Headers**: Consistent cache control and vary headers
+
+### Performance Improvements
+- **Intelligent Polling**: Configurable wait times with efficient polling
+- **Action Locking**: Atomic database operations for consistency
+- **Connection Management**: Keep-alive headers for persistent connections
+- **Parameter Validation**: Input validation with clear error messages
+
+### State Management
+- **Finite State Machine**: Enforces valid action lifecycle transitions
+- **State Validation**: Prevents invalid state changes across the system
+- **Transition Guarding**: Runtime validation of all state changes
+- **State Utilities**: Helper functions for common state operations
+
+### Reliability Features
+- **Idempotency**: Prevents duplicate actions through key-based deduplication
+- **Atomic Operations**: Database transactions ensure data consistency
+- **Error Handling**: Comprehensive error reporting and recovery
+- **Audit Trail**: Complete logging of all state changes and validations
+
+### Development Experience
+- **Type Safety**: Full TypeScript support for all new features
+- **Comprehensive Testing**: Unit tests for FSM and state management
+- **Clear Documentation**: API guides and implementation details
+- **Migration Support**: Smooth transition for existing deployments
+- **Performance Monitoring**: Action timing and system health metrics
+
+The Lab Portal is now ready for production deployment with a robust, secure, and reliable control system that can handle both local and remote service management with enterprise-grade security and state management.
+
+## 🚀 Predictable Agent Behavior and Enhanced Systemctl Execution
+
+### 39. Safe Systemctl Execution on Host
+- ✅ **Environment Configuration**: New environment variables for safe systemctl execution
+  - `HOST_LOCAL_ID`: Host identifier for local execution (default: "local")
+  - `ALLOW_SYSTEMCTL`: Whether to allow sudo systemctl commands (default: false)
+  - `UNIT_ALLOWLIST_REGEX`: Regex pattern for allowed unit names (default: "^([a-z0-9@._-]+)\\.service$")
+  - `EXEC_TIMEOUT_MS`: Command execution timeout in milliseconds (default: 60000)
+- ✅ **Regex Validation**: `ManagedService.unitName` validated against `UNIT_ALLOWLIST_REGEX` before execution
+- ✅ **User Services First**: Implements `systemctl --user <cmd> <unit>` before system services
+- ✅ **System Services**: Uses `sudo systemctl <cmd> <unit>` only when `ALLOW_SYSTEMCTL=true`
+- ✅ **Timeout Handling**: Distinguishes timeout errors from non-zero exit codes
+- ✅ **Enhanced Reporting**: Stores message, exitCode, and duration with timeout information
+
+#### Systemctl Executor Features
+- **Command Validation**: Only allows start, stop, restart, status commands
+- **Unit Name Validation**: Regex-based allowlist with fallback validation
+- **Timeout Detection**: Identifies ETIMEDOUT and SIGTERM signals
+- **Special Exit Codes**: -2 for timeout conditions, null for execution errors
+- **Duration Tracking**: Captures execution time in milliseconds
+- **Output Sanitization**: HTML tag removal and length limiting
+
+#### Sudo Configuration
+- **Comprehensive Guide**: `SUDOERS_CONFIGURATION.md` with multiple configuration options
+- **Security Best Practices**: Principle of least privilege and command validation
+- **Docker Support**: Special configuration for containerized environments
+- **Testing Examples**: Commands to verify sudo access and security restrictions
+
+### 40. Predictable Agent Behavior System
+- ✅ **Configurable Timeouts**: `EXEC_TIMEOUT_MS` environment variable (default: 60000ms)
+- ✅ **Restart Retry Logic**: `RESTART_RETRY` environment variable (default: 1)
+- ✅ **Enhanced Status Reporting**: Reports "running" when starting work
+- ✅ **Final Status Reporting**: Reports completion with exitCode and stderr
+- ✅ **Timeout Handling**: Sets status="failed", message="timeout", exitCode=null for timeouts
+- ✅ **Message Capping**: Prevents overly long status reports (500 chars for message, 1000 for stderr)
+
+#### Agent Behavior Patterns
+- **Action Execution Flow**: Discovery → Running → Execution → Result → Final Report → Retry Logic
+- **Status Reporting**: Starting work, successful completion, failed execution, timeout cases
+- **Restart Retry Logic**: Automatic retry for restart failures with non-zero exit codes
+- **Smart Retry**: Only retries non-timeout failures with configurable delay
+
+#### Configuration System
+- **Centralized Configuration**: New `config.ts` module for type-safe configuration
+- **Environment Validation**: Required fields, numeric validation, range checking
+- **Configuration Singleton**: Efficient configuration loading and caching
+- **Error Handling**: Clear error messages for configuration issues
+
+### 41. Enhanced Agent Implementation
+- ✅ **ActionExecutor Class**: Configurable timeout, restart retry, timeout detection
+- ✅ **PortalClient Enhancement**: Enhanced status reporting with exitCode and stderr
+- ✅ **Agent Behavior**: Predictable status reporting flow and error handling
+- ✅ **Type Safety**: Full TypeScript support with proper interfaces
+- ✅ **Comprehensive Testing**: Unit tests for all new functionality
+
+#### Implementation Details
+- **Timeout Integration**: Uses `EXEC_TIMEOUT_MS` for all systemctl commands
+- **Retry Logic**: 2-second delay between restart retry attempts
+- **Status Capping**: Automatic truncation of long messages and stderr output
+- **Error Categorization**: Distinguishes between timeouts, failures, and execution errors
+- **Configuration Integration**: All classes use centralized configuration system
+
+### 42. Documentation and Examples
+- ✅ **Environment Examples**: Updated `env.example` with new variables
+- ✅ **Behavior Documentation**: `AGENT_BEHAVIOR.md` with comprehensive behavior guide
+- ✅ **Configuration Examples**: Production, development, and monitoring configurations
+- ✅ **Troubleshooting Guide**: Common issues and debug commands
+- ✅ **Integration Notes**: Portal API compatibility and action lifecycle
+
+#### Configuration Examples
+```bash
+# Development Environment
+EXEC_TIMEOUT_MS=30000    # 30 second timeout
+RESTART_RETRY=1          # 1 retry attempt
+UNIT_ALLOWLIST_REGEX="^([a-z0-9@._-]+)\\.service$"
+
+# Production Environment
+EXEC_TIMEOUT_MS=120000   # 2 minute timeout
+RESTART_RETRY=1          # 1 retry attempt
+UNIT_ALLOWLIST_REGEX="^([a-z0-9@._-]+)\\.service$"
+
+# Aggressive Monitoring
+EXEC_TIMEOUT_MS=30000    # 30 second timeout
+RESTART_RETRY=2          # 2 retry attempts
+POLL_INTERVAL=1000       # 1 second polling
+```
+
+### 43. Security and Reliability Features
+- **Input Validation**: All configuration values validated with clear error messages
+- **Type Safety**: TypeScript interfaces for all configurations and results
+- **Error Handling**: Comprehensive error handling and logging
+- **Resource Limits**: Prevents overly long status reports and command output
+- **Graceful Degradation**: Continues operation on non-critical errors
+
+### 44. Status Reporting Flow
+1. **Action Discovery**: Agent polls for queued actions
+2. **Status Report**: Reports "running" status to portal
+3. **Command Execution**: Executes systemctl command with timeout
+4. **Result Processing**: Handles success, failure, or timeout
+5. **Final Report**: Reports final status with details
+6. **Retry Logic**: Optionally retries restart failures
+
+### 45. Testing and Validation
+- **Build Success**: TypeScript compilation successful
+- **Configuration Testing**: Environment variable validation working correctly
+- **Unit Tests**: Comprehensive test coverage for all new functionality
+- **Error Scenarios**: Timeout, retry, and configuration validation testing
+- **Cross-Platform**: Works on Linux, macOS, and Windows environments
+
+## 🔐 Public API for Grafana/Readers Separation
+
+### 46. Clean Separation for External Monitoring Systems
+- ✅ **Environment Configuration**: Added `READONLY_PUBLIC_TOKEN` environment variable for secure public access
+- ✅ **Token-Based Authentication**: Dual authentication methods:
+  - Query parameter: `?token=YOUR_PUBLIC_TOKEN`
+  - Authorization header: `Authorization: Bearer YOUR_PUBLIC_TOKEN`
+- ✅ **No Cookie Acceptance**: Public endpoints reject requests with cookies for security
+- ✅ **Middleware Protection**: Enhanced middleware to handle public API routes securely
+
+#### Public API Endpoints
+- **`GET /api/public/cards`**: Returns enabled cards with safe information only (excludes sensitive URL field)
+- **`GET /api/public/status/summary`**: Returns overall status summary for all enabled cards
+- **`GET /api/public/status/history?cardId=...&range=24h|7d`**: Returns status history for specific cards
+
+### 47. Security Features and Data Protection
+- ✅ **Safe Data Exposure**: Only exposes non-sensitive information:
+  - Card ID, title, description, group
+  - Current status (isUp, lastChecked, latencyMs, message)
+  - Uptime statistics (24h and 7d)
+  - Performance metrics (average latency, check counts)
+- ✅ **Sensitive Data Exclusion**: Raw URLs and internal system details are never exposed
+- ✅ **Token Validation**: All requests must include valid public token
+- ✅ **Rate Limiting**: Public endpoints subject to same rate limiting as other APIs
+- ✅ **Security Headers**: Consistent security headers on all responses
+
+#### Data Security Measures
+- **URL Exclusion**: Card URLs are never returned in public endpoints
+- **Admin Data Protection**: No admin, control, or internal system data exposed
+- **Input Validation**: All query parameters validated with Zod schemas
+- **Error Handling**: Standardized error responses without information leakage
+
+### 48. Authentication and Authorization System
+- ✅ **Public Token Utilities**: `src/lib/auth/public-token.ts` with:
+  - `validatePublicToken()`: Validates tokens from query params or headers
+  - `createInvalidTokenResponse()`: Standardized error responses
+- ✅ **Dual Authentication Support**: Both query parameter and Bearer token methods
+- ✅ **Token Configuration**: Centralized via `READONLY_PUBLIC_TOKEN` environment variable
+- ✅ **Error Responses**: Consistent 401 responses with proper headers
+
+#### Authentication Flow
+```typescript
+// Check query parameter first
+if (queryToken && queryToken === env.READONLY_PUBLIC_TOKEN) {
+  return true
+}
+
+// Check Authorization header
+if (authHeader && authHeader.startsWith('Bearer ')) {
+  const token = authHeader.substring(7)
+  if (token === env.READONLY_PUBLIC_TOKEN) {
+    return true
+  }
+}
+```
+
+### 49. Public API Implementation
+- ✅ **Cards Endpoint**: `/api/public/cards` with safe card information
+- ✅ **Status Summary**: `/api/public/status/summary` with uptime statistics
+- ✅ **Status History**: `/api/public/status/history` with trend data
+- ✅ **Data Downsampling**: History endpoints limit to 500 data points for efficient charting
+- ✅ **Uptime Calculations**: 24h and 7d uptime percentages with performance metrics
+
+#### Response Data Structure
+```json
+{
+  "id": "card_id",
+  "title": "Service Name",
+  "description": "Service description",
+  "group": "General",
+  "status": {
+    "isUp": true,
+    "lastChecked": "2024-01-01T12:00:00.000Z",
+    "latencyMs": 150,
+    "message": "OK"
+  },
+  "uptime": {
+    "24h": 95.5,
+    "7d": 92.3
+  },
+  "metrics": {
+    "totalChecks24h": 1440,
+    "totalChecks7d": 10080,
+    "avgLatency24h": 145
+  }
+}
+```
+
+### 50. Middleware and Security Hardening
+- ✅ **Public Endpoint Detection**: Middleware identifies `/api/public/*` routes
+- ✅ **Cookie Rejection**: Immediate 400 response for any cookie presence
+- ✅ **Security Headers**: `Cache-Control: no-store` and `Vary: Authorization`
+- ✅ **CORS Protection**: Maintains existing CORS configuration for admin routes
+- ✅ **Rate Limiting**: Public endpoints subject to same rate limiting policies
+
+#### Middleware Security Rules
+```typescript
+// Public endpoint hardening
+if (isPublicEndpoint) {
+  // Reject requests with cookies for security
+  const cookieHeader = req.headers.get('cookie')
+  if (cookieHeader) {
+    return new NextResponse(
+      JSON.stringify({ error: 'Cookies not allowed for public endpoints' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+}
+```
+
+### 51. Testing and Validation Tools
+- ✅ **Test Script**: `scripts/test-public-api.sh` for comprehensive endpoint testing
+- ✅ **Authentication Testing**: Validates both query parameter and header methods
+- ✅ **Security Testing**: Verifies cookie rejection and token validation
+- ✅ **Error Scenario Testing**: Tests invalid tokens and missing authentication
+- ✅ **Cross-Platform**: Works on Linux, macOS, and Windows environments
+
+#### Test Script Features
+- **Endpoint Validation**: Tests all three public API endpoints
+- **Authentication Methods**: Validates both token authentication methods
+- **Security Verification**: Ensures cookies are rejected and tokens are required
+- **Error Handling**: Tests various error scenarios and responses
+- **Usage Examples**: Provides examples for Grafana integration
+
+### 52. Documentation and Integration Guide
+- ✅ **Comprehensive Documentation**: `PUBLIC_API.md` with complete API reference
+- ✅ **Grafana Integration**: Examples for monitoring dashboard integration
+- ✅ **cURL Examples**: Command-line testing and integration examples
+- ✅ **JavaScript Examples**: Fetch API usage patterns
+- ✅ **Error Response Documentation**: Complete error code and message reference
+
+#### Documentation Coverage
+- **Authentication**: Token-based authentication methods and examples
+- **Endpoints**: Complete API reference with request/response examples
+- **Security Features**: Security measures and data protection details
+- **Integration Examples**: Grafana, cURL, and JavaScript integration
+- **Error Handling**: Comprehensive error response documentation
+- **Rate Limiting**: API limits and retry guidance
+
+### 53. Production Deployment Features
+- ✅ **Environment Configuration**: Easy configuration via environment variables
+- ✅ **Docker Support**: Compatible with existing Docker deployment
+- ✅ **Health Checks**: Endpoints work with existing health check systems
+- ✅ **Monitoring Integration**: Ready for Prometheus, Grafana, and other monitoring tools
+- ✅ **Scalability**: Designed for high-traffic monitoring scenarios
+
+#### Deployment Benefits
+- **Easy Configuration**: Single environment variable for token management
+- **Secure by Default**: No sensitive data exposure, comprehensive security
+- **Monitoring Ready**: Designed for integration with external monitoring systems
+- **Performance Optimized**: Efficient data structures and response formats
+- **Production Grade**: Comprehensive error handling and rate limiting
+
+## 🎯 Enhanced System Status
+
+The Lab Portal now provides **comprehensive public API access** for external monitoring systems with:
+
+### Public API Capabilities
+- **Secure Access**: Token-based authentication with no cookie acceptance
+- **Safe Data Exposure**: Only non-sensitive information available
+- **Comprehensive Monitoring**: Cards, status summary, and historical data
+- **Grafana Ready**: Designed for integration with monitoring dashboards
+- **Production Grade**: Rate limiting, security headers, and error handling
+
+### Security Features
+- **Token Authentication**: Dual authentication methods for flexibility
+- **Data Protection**: Sensitive information never exposed
+- **Cookie Rejection**: Prevents session-based attacks
+- **Input Validation**: Comprehensive parameter validation
+- **Error Handling**: Secure error responses without information leakage
+
+### Integration Benefits
+- **External Monitoring**: Ready for Grafana, Prometheus, and other tools
+- **API Flexibility**: Both query parameter and header authentication
+- **Comprehensive Data**: Uptime statistics, performance metrics, and trends
+- **Easy Configuration**: Single environment variable for token management
+- **Production Ready**: Designed for high-traffic monitoring scenarios
+
+### Development Experience
+- **Clear Documentation**: Comprehensive API reference and examples
+- **Testing Tools**: Automated testing scripts for validation
+- **Error Handling**: Clear error messages and status codes
+- **Type Safety**: Full TypeScript support for all endpoints
+- **Cross-Platform**: Works across different operating systems
+
+The Lab Portal is now ready for production deployment with a comprehensive, secure, and reliable control system that provides both local systemctl execution, remote agent management, and secure public API access for external monitoring systems with enterprise-grade security and monitoring capabilities.

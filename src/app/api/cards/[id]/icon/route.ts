@@ -5,6 +5,7 @@ import { writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import sharp from 'sharp'
 import { existsSync } from 'fs'
+import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 
 // POST /api/cards/:id/icon - Upload card icon (protected)
 export async function POST(
@@ -15,9 +16,10 @@ export async function POST(
     // Server-side authentication check
     const session = await getServerSession()
     if (!session?.user?.id || session.user.id !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+      return createErrorResponse(
+        ErrorCodes.UNAUTHORIZED,
+        'Unauthorized',
+        401
       )
     }
 
@@ -29,9 +31,10 @@ export async function POST(
     })
 
     if (!card) {
-      return NextResponse.json(
-        { error: 'Card not found' },
-        { status: 404 }
+      return createErrorResponse(
+        ErrorCodes.NOT_FOUND,
+        'Card not found',
+        404
       )
     }
 
@@ -39,27 +42,30 @@ export async function POST(
     const file = formData.get('icon') as File
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No icon file provided' },
-        { status: 400 }
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'No icon file provided',
+        400
       )
     }
 
     // Validate file type and size
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only PNG, JPEG, and WebP are allowed.' },
-        { status: 400 }
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'Invalid file type. Only PNG, JPEG, and WebP are allowed.',
+        400
       )
     }
 
     // Validate file size (2MB limit)
     const maxSize = 2 * 1024 * 1024 // 2MB
     if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 2MB.' },
-        { status: 400 }
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'File too large. Maximum size is 2MB.',
+        400
       )
     }
 
@@ -127,11 +133,12 @@ export async function POST(
       iconPath,
       card: updatedCard,
     })
-  } catch (error) {
-    console.error('Error uploading icon:', error)
-    return NextResponse.json(
-      { error: 'Failed to upload icon' },
-      { status: 500 }
-    )
-  }
+      } catch (error) {
+      console.error('Error uploading icon:', error)
+      return createErrorResponse(
+        ErrorCodes.INTERNAL_ERROR,
+        'Failed to upload icon',
+        500
+      )
+    }
 }

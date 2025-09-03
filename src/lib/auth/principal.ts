@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
+import { createErrorResponse, ErrorCodes } from '@/lib/errors'
 
 export type AdminPrincipal = {
   type: 'admin'
@@ -129,40 +130,19 @@ export function createPrincipalError(error: Error): Response {
   const message = error.message
   
   if (message.includes('Unauthorized')) {
-    return new Response(
-      JSON.stringify({ error: message }),
-      { 
-        status: 401,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store'
-        }
-      }
-    )
+    if (message.includes('agent') || message.includes('token')) {
+      return createErrorResponse(ErrorCodes.INVALID_TOKEN, message, 401)
+    }
+    return createErrorResponse(ErrorCodes.UNAUTHORIZED, message, 401)
   }
   
   if (message.includes('Forbidden') || message.includes('cannot accept')) {
-    return new Response(
-      JSON.stringify({ error: message }),
-      { 
-        status: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store'
-        }
-      }
-    )
+    if (message.includes('session cookies')) {
+      return createErrorResponse(ErrorCodes.COOKIES_NOT_ALLOWED, message, 403)
+    }
+    return createErrorResponse(ErrorCodes.FORBIDDEN, message, 403)
   }
   
   // Default to 500 for unexpected errors
-  return new Response(
-    JSON.stringify({ error: 'Internal server error' }),
-    { 
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store'
-      }
-    }
-  )
+  return createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Internal server error', 500)
 }

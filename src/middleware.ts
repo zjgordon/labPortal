@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import { statusRateLimiter } from "@/lib/rate-limiter"
 import { getAdminCorsHeaders } from "@/lib/auth/csrf-protection"
+import { createErrorResponse, ErrorCodes } from "@/lib/errors"
 
 /**
  * Next.js middleware for security headers and rate limiting
@@ -13,6 +14,14 @@ export default async function middleware(req: NextRequest) {
   const pathname = req.nextUrl?.pathname || req.url ? new URL(req.url).pathname : '/'
   const isAdminPage = pathname.startsWith('/admin') || pathname.includes('admin-test')
   
+  // Check if this is an agent endpoint that needs hardening
+  const isAgentEndpoint = pathname.startsWith('/api/agents') || 
+                         pathname === '/api/control/queue' || 
+                         pathname === '/api/control/report'
+  
+  // Check if this is a public API endpoint
+  const isPublicEndpoint = pathname.startsWith('/api/public')
+  
   let csp: string
   if (isAdminPage) {
     // More permissive CSP for admin pages (needed for form handling and dynamic content)
@@ -20,6 +29,54 @@ export default async function middleware(req: NextRequest) {
   } else {
     // CSP for public pages - allow Next.js to work properly
     csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
+  }
+
+  // Agent endpoint hardening
+  if (isAgentEndpoint) {
+    // Reject requests with cookies
+    const cookieHeader = req.headers.get('cookie')
+    if (cookieHeader) {
+      return createErrorResponse(
+        ErrorCodes.COOKIES_NOT_ALLOWED,
+        'Cookies not allowed for agent endpoints',
+        400
+      )
+    }
+    
+    // Require Authorization header
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Authorization header with Bearer token required' }),
+        {
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store',
+            'Vary': 'Authorization'
+          }
+        }
+      )
+    }
+  }
+
+  // Public endpoint hardening
+  if (isPublicEndpoint) {
+    // Reject requests with cookies for security
+    const cookieHeader = req.headers.get('cookie')
+    if (cookieHeader) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Cookies not allowed for public endpoints' }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store',
+            'Vary': 'Authorization'
+          }
+        }
+      )
+    }
   }
 
   // Rate limiting for status API
@@ -58,6 +115,11 @@ export default async function middleware(req: NextRequest) {
   // Set Cache-Control: no-store for all API routes
   if (pathname.startsWith('/api/')) {
     response.headers.set('Cache-Control', 'no-store')
+    
+    // Add Vary: Authorization header for agent and public endpoints
+    if (isAgentEndpoint || isPublicEndpoint) {
+      response.headers.set('Vary', 'Authorization')
+    }
     
     // Add CORS headers for admin routes
     if (pathname.startsWith('/api/hosts') || 
