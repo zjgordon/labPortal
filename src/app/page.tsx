@@ -261,7 +261,7 @@ export default function HomePage() {
                 <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
                   LAB<span className="text-emerald-400">PORTAL</span>
                 </h1>
-                <p className="text-xs text-slate-500 uppercase tracking-wider">Control Plane v1.0</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Version 0.2dev</p>
               </div>
             </div>
 

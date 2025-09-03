@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { validatePublicToken, createInvalidTokenResponse } from '@/lib/auth/public-token'
+import { ResponseOptimizer } from '@/lib/response-optimizer'
 
 /**
  * GET /api/public/status/summary
@@ -21,7 +22,20 @@ export async function GET(request: Request) {
     // Get all enabled cards with their current status
     const cards = await prisma.card.findMany({
       where: { isEnabled: true },
-      include: { status: true },
+      select: {
+        id: true,
+        title: true,
+        group: true,
+        order: true,
+        status: {
+          select: {
+            isUp: true,
+            lastChecked: true,
+            latencyMs: true,
+            message: true,
+          }
+        },
+      },
       orderBy: { order: 'asc' },
     })
     
@@ -116,6 +130,11 @@ export async function GET(request: Request) {
         uptime7d: Math.round(overallUptime7d * 100) / 100,
       },
       cards: summary,
+    }, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'public, max-age=5, stale-while-revalidate=30'
+      }
     })
     
   } catch (error) {

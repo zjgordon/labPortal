@@ -66,6 +66,8 @@ model Card {
   status      CardStatus?
   statusEvents StatusEvent[]
   services    ManagedService[]
+  
+  @@index([isEnabled, order])
 }
 
 model CardStatus {

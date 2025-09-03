@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { ResponseOptimizer } from '@/lib/response-optimizer'
 
 const historyQuerySchema = z.object({
   cardId: z.string().min(1),
@@ -129,6 +130,11 @@ export async function GET(request: NextRequest) {
         latencyMs: e.latencyMs,
         message: e.message,
       })),
+    }, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'public, max-age=5, stale-while-revalidate=30'
+      }
     })
     
   } catch (error) {

@@ -3,13 +3,14 @@ import { NextRequest } from "next/server"
 import { statusRateLimiter } from "@/lib/rate-limiter"
 import { getAdminCorsHeaders } from "@/lib/auth/csrf-protection"
 import { createErrorResponse, ErrorCodes } from "@/lib/errors"
+import { ResponseOptimizer } from "@/lib/response-optimizer"
 
 /**
  * Next.js middleware for security headers and rate limiting
  * Applies Content Security Policy, security headers, and rate limiting
  * to all routes except static assets
  */
-export default async function middleware(req: NextRequest) {
+export default function middleware(req: NextRequest) {
   // Content Security Policy - strict CSP for all pages
   const pathname = req.nextUrl?.pathname || req.url ? new URL(req.url).pathname : '/'
   const isAdminPage = pathname.startsWith('/admin') || pathname.includes('admin-test')
@@ -51,8 +52,8 @@ export default async function middleware(req: NextRequest) {
         {
           status: 401,
           headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store',
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Vary': 'Authorization'
           }
         }
@@ -70,8 +71,8 @@ export default async function middleware(req: NextRequest) {
         {
           status: 400,
           headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store',
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Vary': 'Authorization'
           }
         }
@@ -89,7 +90,8 @@ export default async function middleware(req: NextRequest) {
           {
             status: 429,
             headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json; charset=utf-8',
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
               'Retry-After': Math.ceil(statusRateLimiter.getRemainingTime(clientIP) / 1000).toString()
             }
           }
@@ -112,15 +114,8 @@ export default async function middleware(req: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   
-  // Set Cache-Control: no-store for all API routes
+  // Set basic headers for API routes
   if (pathname.startsWith('/api/')) {
-    response.headers.set('Cache-Control', 'no-store')
-    
-    // Add Vary: Authorization header for agent and public endpoints
-    if (isAgentEndpoint || isPublicEndpoint) {
-      response.headers.set('Vary', 'Authorization')
-    }
-    
     // Add CORS headers for admin routes
     if (pathname.startsWith('/api/hosts') || 
         pathname.startsWith('/api/cards') || 

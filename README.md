@@ -133,8 +133,19 @@ Comprehensive documentation is available in the [`/docs`](docs/index.md) directo
 
 #### Public Endpoints (`/api/public/*`, `/api/status`)
 - **Authentication**: None required
-- **Caching**: `Cache-Control: max-age=5, stale-while-revalidate=30`
+- **Caching**: `Cache-Control: public, max-age=5, stale-while-revalidate=30`
 - **Error Format**: Uniform error responses with codes and messages
+- **Compression**: Gzip/Brotli compression for optimal performance
+
+### Response Optimization & Caching
+
+**Public APIs are cached for 5s; admin/agent never cached.**
+
+- **Admin/Agent APIs**: `Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate`
+- **Public Status APIs**: `Cache-Control: public, max-age=5, stale-while-revalidate=30`
+- **Compression**: Automatic Gzip/Brotli compression for JSON responses
+- **Content-Type**: `application/json; charset=utf-8` for all API responses
+- **Vary Headers**: `Vary: Authorization` for endpoints that vary by auth token
 
 ### Error Response Format
 All endpoints return errors in a consistent format:
