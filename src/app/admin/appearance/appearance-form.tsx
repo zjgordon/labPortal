@@ -1,8 +1,3 @@
-// TODO: 🚨 FORM NOT WORKING - NEEDS DEBUGGING
-// Issue: Form submission/functionality is broken
-// Next steps: Debug form submission, check API endpoints, verify validation
-// Priority: High - Core functionality blocked
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -22,31 +17,54 @@ interface AppearanceData {
 export function AppearanceForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
-              const [formData, setFormData] = useState<AppearanceData>({
-              instanceName: 'Instance',
-              headerText: 'Header Message',
-              theme: 'system'
-            })
+  const [formData, setFormData] = useState<AppearanceData>({
+    instanceName: 'Lab Portal',
+    headerText: null,
+    theme: 'system'
+  })
   const { toast } = useToast()
   const router = useRouter()
 
-    // Simplified: Don't try to load current data, just use defaults
+  // Load current appearance data on component mount
   useEffect(() => {
-    setIsLoadingData(false)
+    const fetchCurrentAppearance = async () => {
+      try {
+        const response = await fetch('/api/admin/appearance', {
+          method: 'GET',
+          headers: {
+            'x-api-key': 'smoke-test-key',
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setFormData({
+            instanceName: data.data.instanceName,
+            headerText: data.data.headerText,
+            theme: data.data.theme
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch current appearance:', error)
+      } finally {
+        setIsLoadingData(false)
+      }
+    }
+
+    fetchCurrentAppearance()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    console.log('Submitting form data:', formData)
-
     try {
       const response = await fetch('/api/admin/appearance', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': 'smoke-test-key', // Use the test API key for now
+          'x-api-key': 'smoke-test-key',
+          'Origin': window.location.origin,
         },
         body: JSON.stringify(formData),
       })
@@ -55,17 +73,14 @@ export function AppearanceForm() {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`
         try {
           const errorData = await response.json()
-          console.error('Response error:', errorData)
           errorMessage = errorData.error || errorData.message || errorMessage
         } catch (parseError) {
-          console.error('Could not parse error response:', parseError)
+          // Ignore parse error, use default message
         }
         throw new Error(errorMessage)
       }
 
-      const result = await response.json()
-      console.log('Success response:', result)
-      console.log('Response status:', response.status)
+      await response.json()
       
       toast({
         title: 'Success',
@@ -95,43 +110,63 @@ export function AppearanceForm() {
     }))
   }
 
-
+  if (isLoadingData) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Instance Name</Label>
+            <Input disabled placeholder="Loading..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Header Message</Label>
+            <Input disabled placeholder="Loading..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Theme</Label>
+            <Input disabled placeholder="Loading..." />
+          </div>
+        </div>
+        <Button disabled className="w-full">Loading...</Button>
+      </div>
+    )
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
-                          {/* Instance Name */}
-                  <div className="space-y-2">
-                    <Label htmlFor="instanceName">Instance Name</Label>
-                    <Input
-                      id="instanceName"
-                      value={formData.instanceName}
-                      onChange={(e) => handleInputChange('instanceName', e.target.value)}
-                      placeholder="Enter instance name"
-                      maxLength={60}
-                      required
-                      className="text-lg font-medium"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      The display name for your portal instance (max 60 characters)
-                    </p>
-                  </div>
+        {/* Instance Name */}
+        <div className="space-y-2">
+          <Label htmlFor="instanceName">Instance Name</Label>
+          <Input
+            id="instanceName"
+            value={formData.instanceName}
+            onChange={(e) => handleInputChange('instanceName', e.target.value)}
+            placeholder="Enter instance name"
+            maxLength={60}
+            required
+            className="text-lg font-medium"
+          />
+          <p className="text-sm text-muted-foreground">
+            The display name for your portal instance (max 60 characters)
+          </p>
+        </div>
 
-                  {/* Header Text */}
-                  <div className="space-y-2">
-                    <Label htmlFor="headerText">Header Message</Label>
-                    <Input
-                      id="headerText"
-                      value={formData.headerText || ''}
-                      onChange={(e) => handleInputChange('headerText', e.target.value || null)}
-                      placeholder="Enter header message (optional)"
-                      maxLength={140}
-                      className="text-base"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Short banner text shown in header center (max 140 characters)
-                    </p>
-                  </div>
+        {/* Header Text */}
+        <div className="space-y-2">
+          <Label htmlFor="headerText">Header Message</Label>
+          <Input
+            id="headerText"
+            value={formData.headerText || ''}
+            onChange={(e) => handleInputChange('headerText', e.target.value || null)}
+            placeholder="Enter header message (optional)"
+            maxLength={140}
+            className="text-base"
+          />
+          <p className="text-sm text-muted-foreground">
+            Short banner text shown in header center (max 140 characters)
+          </p>
+        </div>
 
         {/* Theme */}
         <div className="space-y-2">

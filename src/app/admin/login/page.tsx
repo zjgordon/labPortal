@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 
 /**
  * AdminLoginPage - Authentication interface for portal administration
  * Features:
- * - Password-based authentication
- * - Local storage session management
+ * - NextAuth-based authentication
+ * - Proper session management
  * - Error handling and user feedback
  * - Navigation back to main portal
  */
@@ -23,7 +24,7 @@ export default function AdminLoginPage() {
 
   /**
    * Handles admin login form submission
-   * Authenticates user and sets session data in localStorage
+   * Authenticates user using NextAuth and redirects to admin dashboard
    * @param e - Form submission event
    */
   const handleLogin = async (e: React.FormEvent) => {
@@ -32,28 +33,22 @@ export default function AdminLoginPage() {
     setError('')
 
     try {
-      // Use NextAuth for proper authentication
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'admin@local', password }),
+      // Use NextAuth signIn for proper authentication
+      const result = await signIn('credentials', {
+        email: 'admin@local',
+        password,
+        redirect: false,
       })
 
-      if (response.ok) {
-        console.log('Login successful, setting localStorage values')
-        
-        // Set localStorage values for admin authentication
-        localStorage.setItem('admin-authenticated', 'true')
-        localStorage.setItem('admin-login-time', Date.now().toString())
-        
-        console.log('localStorage values set, redirecting to admin dashboard...')
-        // Use Next.js router for navigation
+      if (result?.ok) {
+        console.log('Login successful, redirecting to admin dashboard...')
         router.push('/admin')
       } else {
         setError('Incorrect password. Please try again.')
         setPassword('')
       }
     } catch (error) {
+      console.error('Login error:', error)
       setError('An error occurred during login. Please try again.')
     }
     
@@ -76,7 +71,7 @@ export default function AdminLoginPage() {
             variant="outline" 
             size="sm" 
             onClick={() => router.push('/')}
-            className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]"
+            className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_15px_rgba(52,211,153,0.5)]"
           >
             ← Back to Portal
           </Button>
@@ -111,7 +106,7 @@ export default function AdminLoginPage() {
                 </div>
               )}
               
-              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)] transition-all duration-200" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_15px_rgba(52,211,153,0.5)] transition-all duration-200" disabled={isLoading}>
                 {isLoading ? "Checking..." : "Access Configuration"}
               </Button>
             </form>

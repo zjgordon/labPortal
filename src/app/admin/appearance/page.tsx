@@ -7,7 +7,7 @@ export default function AdminAppearancePage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Appearance Settings</h1>
         <p className="text-muted-foreground">
-          Customize the portal's appearance and branding
+          Customize the portal&apos;s appearance and branding
         </p>
       </div>
 

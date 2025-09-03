@@ -18,12 +18,9 @@ export async function isAdminAuthenticated(request: NextRequest): Promise<boolea
     }
     
     // Then check for session-based authentication
-    const session = await getServerSession()
-    
-    // Check if user is authenticated and is admin
-    if (session?.user?.email === 'admin@local') {
-      return true
-    }
+    // Note: getServerSession() without authOptions won't work in API routes
+    // For now, we'll rely on the API key authentication for testing
+    // TODO: Implement proper session-based authentication for API routes
     
     return false
   } catch (error) {

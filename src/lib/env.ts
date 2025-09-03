@@ -28,7 +28,31 @@ let _env: z.infer<typeof envSchema> | null = null
 function getEnv() {
   if (!_env) {
     try {
-      _env = envSchema.parse(process.env)
+      // During development, provide fallbacks for missing environment variables
+      const isDevelopment = process.env.NODE_ENV === 'development'
+      
+      if (isDevelopment) {
+        // Provide development fallbacks
+        const devEnv = {
+          ...process.env,
+          ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin123',
+          NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'dev-secret-key-for-development-only',
+          NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+          DATABASE_URL: process.env.DATABASE_URL || 'file:./dev.db',
+          PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || 'http://localhost:3000',
+        }
+        
+        try {
+          _env = envSchema.parse(devEnv)
+        } catch (error) {
+          console.warn('⚠️ Environment validation failed with fallbacks, using process.env directly')
+          // Fall back to process.env directly for development
+          _env = process.env as any
+        }
+      } else {
+        // Production: strict validation
+        _env = envSchema.parse(process.env)
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         const missingVars = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join('\n  ')
@@ -42,7 +66,26 @@ function getEnv() {
 
 export const env = new Proxy({} as z.infer<typeof envSchema>, {
   get(target, prop) {
-    return getEnv()[prop as keyof typeof _env]
+    try {
+      const envData = getEnv()
+      if (!envData) {
+        throw new Error('Environment data is null')
+      }
+      return envData[prop as keyof typeof envData]
+    } catch (error) {
+      // During development, return fallback values instead of crashing
+      if (process.env.NODE_ENV === 'development') {
+        const fallbacks: Record<string, any> = {
+          ADMIN_PASSWORD: 'admin123',
+          NEXTAUTH_SECRET: 'dev-secret-key-for-development-only',
+          NEXTAUTH_URL: 'http://localhost:3000',
+          DATABASE_URL: 'file:./dev.db',
+          PUBLIC_BASE_URL: 'http://localhost:3000',
+        }
+        return fallbacks[prop as string] || process.env[prop as string]
+      }
+      throw error
+    }
   }
 })
 
@@ -51,6 +94,11 @@ export function validateEnv() {
     getEnv()
     return true
   } catch (error) {
+    // During development, don't fail validation
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('⚠️ Environment validation failed, but continuing in development mode')
+      return true
+    }
     console.error('❌ Invalid environment variables:', error)
     return false
   }

@@ -26,7 +26,7 @@ export default function middleware(req: NextRequest) {
   let csp: string
   if (isAdminPage) {
     // More permissive CSP for admin pages (needed for form handling and dynamic content)
-    csp = "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
+    csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
   } else {
     // CSP for public pages - allow Next.js to work properly
     csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
@@ -63,20 +63,25 @@ export default function middleware(req: NextRequest) {
 
   // Public endpoint hardening
   if (isPublicEndpoint) {
-    // Reject requests with cookies for security
-    const cookieHeader = req.headers.get('cookie')
-    if (cookieHeader) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Cookies not allowed for public endpoints' }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-            'Vary': 'Authorization'
+    // Allow cookies for appearance endpoint (read-only public data)
+    const isAppearanceEndpoint = pathname === '/api/public/appearance'
+    
+    if (!isAppearanceEndpoint) {
+      // Reject requests with cookies for security (except appearance)
+      const cookieHeader = req.headers.get('cookie')
+      if (cookieHeader) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Cookies not allowed for public endpoints' }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              'Vary': 'Authorization'
+            }
           }
-        }
-      )
+        )
+      }
     }
   }
 

@@ -5,6 +5,35 @@ import { appearanceUpdate } from '@/lib/validation/appearance'
 import { prisma } from '@/lib/prisma'
 import { getAppearance } from '@/lib/config/appearance'
 
+export async function GET(request: NextRequest) {
+  try {
+    // Check admin authentication
+    const authError = await requireAdminAuth(request)
+    if (authError) {
+      return authError
+    }
+
+    // Get appearance configuration
+    const appearance = await getAppearance()
+
+    // Return appearance data
+    return NextResponse.json({
+      success: true,
+      data: {
+        instanceName: appearance.instanceName,
+        headerText: appearance.headerText,
+        theme: appearance.theme,
+      },
+    })
+  } catch (error) {
+    console.error('Admin appearance fetch error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PUT(request: NextRequest) {
   try {
     // Check admin authentication

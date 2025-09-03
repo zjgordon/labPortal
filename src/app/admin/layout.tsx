@@ -1,13 +1,60 @@
-import { ReactNode } from 'react'
+"use client"
+
+import { ReactNode, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Server, Monitor, Home, Square, Palette } from 'lucide-react'
+import { Server, Monitor, Home, Square, Palette, LogOut } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 
 interface AdminLayoutProps {
   children: ReactNode
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // Check if this is the login page
+  const isLoginPage = pathname === '/admin/login'
+
+  // Redirect to login if not authenticated (but not if already on login page)
+  useEffect(() => {
+    if (status === 'loading') return // Still loading
+    
+    if (!session && !isLoginPage) {
+      router.push('/admin/login')
+    }
+  }, [session, status, router, isLoginPage])
+
+  // Show loading while checking authentication (but not on login page)
+  if (status === 'loading' && !isLoginPage) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render admin content if not authenticated (but allow login page)
+  if (!session && !isLoginPage) {
+    return null
+  }
+
+  // If this is the login page, render without the admin navigation
+  if (isLoginPage) {
+    return <>{children}</>
+  }
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/' })
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Header */}
@@ -49,11 +96,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             
             <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Logged in as {session?.user?.email}
+              </span>
               <Link href="/">
                 <Button variant="outline" size="sm">
                   Back to Portal
                 </Button>
               </Link>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
