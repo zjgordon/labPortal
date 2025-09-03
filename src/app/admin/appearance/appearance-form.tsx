@@ -1,3 +1,8 @@
+// TODO: 🚨 FORM NOT WORKING - NEEDS DEBUGGING
+// Issue: Form submission/functionality is broken
+// Next steps: Debug form submission, check API endpoints, verify validation
+// Priority: High - Core functionality blocked
+
 'use client'
 
 import { useState, useEffect } from 'react'

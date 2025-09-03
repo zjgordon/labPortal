@@ -1,5 +1,16 @@
 # Lab Portal - Project Status
 
+## 🚨 TODO - URGENT ISSUES TO ADDRESS
+
+### Appearance Form Not Working
+**Status**: Blocked - Form submission/functionality needs debugging
+**Location**: `src/app/admin/appearance/appearance-form.tsx`
+**Issue**: The appearance form is not working properly - needs investigation and fixes
+**Priority**: High - This blocks the core appearance management functionality
+**Next Steps**: Debug form submission, check API endpoints, verify validation
+
+---
+
 ## ✅ Completed Tasks
 
 ### 1. Next.js 14 (App Router) + TypeScript Project
