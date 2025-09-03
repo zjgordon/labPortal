@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { verifyOrigin, createCsrfErrorResponse } from '@/lib/auth/csrf-protection'
+import { getServerSession } from 'next-auth'
 
 // Schema for imported card data
 const importCardSchema = z.object({
@@ -22,8 +24,19 @@ const importRequestSchema = z.object({
 // POST /api/cards/import - Import cards from JSON (admin only)
 export async function POST(request: NextRequest) {
   try {
-    // Simple authentication check - in production, implement proper JWT or session validation
-    // For now, we'll rely on the fact that this is an admin-only route
+    // Admin authentication check
+    const session = await getServerSession()
+    if (!session?.user?.id || session.user.id !== 'admin') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
+      return createCsrfErrorResponse(request)
+    }
     
     const body = await request.json()
     const validatedData = importRequestSchema.parse(body)

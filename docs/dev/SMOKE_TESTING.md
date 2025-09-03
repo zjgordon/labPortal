@@ -287,10 +287,10 @@ bash -n scripts/curl/control-smoke.sh
 
 ## 📚 References
 
-- [Control Actions API](CONTROL_ACTIONS_API.md)
-- [Local Action Execution](LOCAL_ACTION_EXECUTION.md)
-- [Project Status](PROJECT_STATUS.md)
-- [Scripts Documentation](scripts/README.md)
+- [Control Actions API](../api/CONTROL_ACTIONS_API.md)
+- [Local Action Execution](../agent/LOCAL_ACTION_EXECUTION.md)
+- [Project Status](../../PROJECT_STATUS.md)
+- [Scripts Documentation](../scripts.md)
 
 ---
 

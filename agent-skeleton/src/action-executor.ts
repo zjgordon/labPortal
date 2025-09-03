@@ -1,16 +1,18 @@
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { Logger } from './logger'
+import { getConfig } from './config'
 
 const execFileAsync = promisify(execFile)
 
 interface ExecutionResult {
   success: boolean
-  exitCode: number
+  exitCode: number | null
   stdout: string
   stderr: string
   message: string
   duration: number
+  isTimeout: boolean
 }
 
 export class ActionExecutor {
@@ -29,6 +31,9 @@ export class ActionExecutor {
 
   async execute(command: string, unitName: string): Promise<ExecutionResult> {
     const startTime = Date.now()
+    const config = getConfig()
+    const timeout = config.execTimeoutMs
+    const restartRetry = config.restartRetry
 
     // Validate command
     if (!this.isValidCommand(command)) {
@@ -40,7 +45,7 @@ export class ActionExecutor {
       throw new Error(`Invalid unit name: ${unitName}`)
     }
 
-    this.logger.info(`Executing: systemctl ${command} ${unitName}`)
+    this.logger.info(`Executing: systemctl ${command} ${unitName} (timeout: ${timeout}ms)`)
 
     try {
       // Try user services first, then system services
@@ -48,15 +53,36 @@ export class ActionExecutor {
 
       try {
         // First try user services
-        result = await this.executeUserService(command, unitName)
+        result = await this.executeUserService(command, unitName, timeout)
       } catch (error) {
         // If user service fails, try system service
         this.logger.debug(`User service failed, trying system service: ${error}`)
-        result = await this.executeSystemService(command, unitName)
+        result = await this.executeSystemService(command, unitName, timeout)
       }
 
       const duration = Date.now() - startTime
       result.duration = duration
+
+      // Handle restart retry logic
+      if (command === 'restart' && !result.success && result.exitCode !== null && result.exitCode !== 0 && !result.isTimeout) {
+        if (restartRetry > 0) {
+          this.logger.info(`Restart failed with exit code ${result.exitCode}, retrying once after delay...`)
+          
+          // Wait a bit before retry
+          await this.sleep(2000)
+          
+          const retryResult = await this.executeWithRetry(command, unitName, timeout)
+          retryResult.duration = Date.now() - startTime
+          
+          if (retryResult.success) {
+            this.logger.info('Restart retry succeeded')
+            return retryResult
+          } else {
+            this.logger.warn('Restart retry also failed')
+            return retryResult
+          }
+        }
+      }
 
       this.logger.info(`Command completed in ${duration}ms with exit code ${result.exitCode}`)
       return result
@@ -69,21 +95,32 @@ export class ActionExecutor {
       
       return {
         success: false,
-        exitCode: -1,
+        exitCode: null,
         stdout: '',
         stderr: errorMessage,
         message: `Execution failed: ${errorMessage}`,
         duration,
+        isTimeout: false,
       }
     }
   }
 
-  private async executeUserService(command: string, unitName: string): Promise<ExecutionResult> {
+  private async executeWithRetry(command: string, unitName: string, timeout: number): Promise<ExecutionResult> {
+    try {
+      // Try user service first
+      return await this.executeUserService(command, unitName, timeout)
+    } catch (error) {
+      // Fall back to system service
+      return await this.executeSystemService(command, unitName, timeout)
+    }
+  }
+
+  private async executeUserService(command: string, unitName: string, timeout: number): Promise<ExecutionResult> {
     const args = [command, unitName]
     
     try {
       const { stdout, stderr } = await execFileAsync('systemctl', args, {
-        timeout: 30000, // 30 second timeout
+        timeout,
         maxBuffer: 1024 * 1024, // 1MB buffer
       })
 
@@ -94,30 +131,37 @@ export class ActionExecutor {
         stderr: this.sanitizeOutput(stderr),
         message: this.createMessage(command, unitName, true, stderr),
         duration: 0, // Will be set by caller
+        isTimeout: false,
       }
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         throw new Error('systemctl command not found')
       }
       
-      const exitCode = error.code || -1
+      // Check if it's a timeout
+      const isTimeout = error.code === 'ETIMEDOUT' || error.signal === 'SIGTERM'
+      const exitCode = isTimeout ? null : (error.code || -1)
+      
       return {
         success: false,
         exitCode,
         stdout: '',
         stderr: this.sanitizeOutput(error.stderr || ''),
-        message: this.createMessage(command, unitName, false, error.stderr || ''),
+        message: isTimeout ? 
+          `Command timed out after ${timeout}ms: systemctl ${command} ${unitName}` :
+          this.createMessage(command, unitName, false, error.stderr || ''),
         duration: 0, // Will be set by caller
+        isTimeout,
       }
     }
   }
 
-  private async executeSystemService(command: string, unitName: string): Promise<ExecutionResult> {
+  private async executeSystemService(command: string, unitName: string, timeout: number): Promise<ExecutionResult> {
     const args = [command, unitName]
     
     try {
       const { stdout, stderr } = await execFileAsync('sudo', ['systemctl', ...args], {
-        timeout: 30000, // 30 second timeout
+        timeout,
         maxBuffer: 1024 * 1024, // 1MB buffer
       })
 
@@ -128,16 +172,23 @@ export class ActionExecutor {
         stderr: this.sanitizeOutput(stderr),
         message: this.createMessage(command, unitName, true, stderr),
         duration: 0, // Will be set by caller
+        isTimeout: false,
       }
     } catch (error: any) {
-      const exitCode = error.code || -1
+      // Check if it's a timeout
+      const isTimeout = error.code === 'ETIMEDOUT' || error.signal === 'SIGTERM'
+      const exitCode = isTimeout ? null : (error.code || -1)
+      
       return {
         success: false,
         exitCode,
         stdout: '',
         stderr: this.sanitizeOutput(error.stderr || ''),
-        message: this.createMessage(command, unitName, false, error.stderr || ''),
+        message: isTimeout ? 
+          `Command timed out after ${timeout}ms: systemctl ${command} ${unitName}` :
+          this.createMessage(command, unitName, false, error.stderr || ''),
         duration: 0, // Will be set by caller
+        isTimeout,
       }
     }
   }
@@ -167,5 +218,9 @@ export class ActionExecutor {
     } else {
       return `Failed to execute: systemctl ${command} ${unitName}. Error: ${stderr || 'Unknown error'}`
     }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 }

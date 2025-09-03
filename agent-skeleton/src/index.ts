@@ -1,50 +1,53 @@
 #!/usr/bin/env node
 
-import { config } from 'dotenv'
 import { Agent } from './agent'
-
-// Load environment variables
-config()
+import { Logger } from './logger'
+import { loadConfig } from './config'
 
 async function main() {
-  const agent = new Agent()
-  
-  console.log('🚀 Lab Portal Agent starting...')
-  console.log(`📍 Host ID: ${process.env.HOST_ID || 'NOT SET'}`)
-  console.log(`🌐 Portal URL: ${process.env.PORTAL_BASE_URL || 'NOT SET'}`)
-  console.log(`🔑 Token: ${process.env.AGENT_TOKEN ? 'SET' : 'NOT SET'}`)
-  console.log(`⏱️  Poll Interval: ${process.env.POLL_INTERVAL || 4000}ms`)
-  
-  // Validate required environment variables
-  if (!process.env.HOST_ID || !process.env.PORTAL_BASE_URL || !process.env.AGENT_TOKEN) {
-    console.error('❌ Missing required environment variables:')
-    console.error('   HOST_ID: Your host identifier')
-    console.error('   PORTAL_BASE_URL: Base URL of the Lab Portal (e.g., http://localhost:3000)')
-    console.error('   AGENT_TOKEN: Authentication token from the portal')
-    process.exit(1)
-  }
+  const logger = new Logger()
   
   try {
+    // Load and validate configuration
+    logger.info('Loading agent configuration...')
+    const config = loadConfig()
+    logger.info(`Configuration loaded: host=${config.hostId}, portal=${config.portalBaseUrl}, timeout=${config.execTimeoutMs}ms, retry=${config.restartRetry}`)
+    
+    // Create and start agent
+    const agent = new Agent()
+    
+    // Handle graceful shutdown
+    const shutdown = async (signal: string) => {
+      logger.info(`Received ${signal}, shutting down gracefully...`)
+      await agent.stop()
+      process.exit(0)
+    }
+    
+    process.on('SIGINT', () => shutdown('SIGINT'))
+    process.on('SIGTERM', () => shutdown('SIGTERM'))
+    
+    // Start the agent
+    logger.info('Starting Lab Portal Agent...')
     await agent.start()
+    
   } catch (error) {
-    console.error('❌ Agent failed to start:', error)
+    logger.error('Failed to start agent:', error)
     process.exit(1)
   }
 }
 
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n🛑 Received SIGINT, shutting down gracefully...')
-  process.exit(0)
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error)
+  process.exit(1)
 })
 
-process.on('SIGTERM', () => {
-  console.log('\n🛑 Received SIGTERM, shutting down gracefully...')
-  process.exit(0)
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+  process.exit(1)
 })
 
-// Start the agent
 main().catch((error) => {
-  console.error('❌ Fatal error:', error)
+  console.error('Main function failed:', error)
   process.exit(1)
 })

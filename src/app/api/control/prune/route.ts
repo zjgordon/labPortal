@@ -2,32 +2,35 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminAuth } from '@/lib/auth'
 import { actionPruner } from '@/lib/action-pruner'
 import { logger } from '@/lib/logger'
-
-export async function GET(request: NextRequest) {
-  try {
-    const authError = await requireAdminAuth(request)
-    if (authError) return authError
-
-    // Get pruning statistics
-    const stats = await actionPruner.getPruningStats()
-    
-    return NextResponse.json({
-      message: 'Action pruning statistics',
-      stats
-    })
-  } catch (error) {
-    console.error('Failed to get pruning stats:', error)
-    return NextResponse.json(
-      { error: 'Failed to get pruning statistics' },
-      { status: 500 }
-    )
-  }
-}
+import { verifyOrigin, createCsrfErrorResponse } from '@/lib/auth/csrf-protection'
+import { env } from '@/lib/env'
 
 export async function POST(request: NextRequest) {
   try {
+    // Admin session authentication
     const authError = await requireAdminAuth(request)
     if (authError) return authError
+    
+    // Server-side secret validation
+    if (!env.ADMIN_CRON_SECRET) {
+      return NextResponse.json(
+        { error: 'Prune management not configured' },
+        { status: 503 }
+      )
+    }
+    
+    const cronSecret = request.headers.get('x-cron-secret')
+    if (!cronSecret || cronSecret !== env.ADMIN_CRON_SECRET) {
+      return NextResponse.json(
+        { error: 'Invalid or missing cron secret' },
+        { status: 403 }
+      )
+    }
+    
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
+      return createCsrfErrorResponse(request)
+    }
 
     const body = await request.json()
     const { retentionDays, batchSize, dryRun = false } = body

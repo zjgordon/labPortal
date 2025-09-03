@@ -1,10 +1,12 @@
 import { Logger } from './logger'
+import { getConfig } from './config'
 
 interface ActionReport {
   actionId: string
   status: 'running' | 'succeeded' | 'failed'
-  exitCode?: number
+  exitCode?: number | null
   message?: string
+  stderr?: string
 }
 
 export class PortalClient {
@@ -13,8 +15,9 @@ export class PortalClient {
   private logger: Logger
 
   constructor() {
-    this.baseUrl = process.env.PORTAL_BASE_URL!
-    this.token = process.env.AGENT_TOKEN!
+    const config = getConfig()
+    this.baseUrl = config.portalBaseUrl
+    this.token = config.agentToken
     this.logger = new Logger()
   }
 
@@ -64,15 +67,22 @@ export class PortalClient {
   async reportActionStatus(
     actionId: string, 
     status: 'running' | 'succeeded' | 'failed',
-    exitCode?: number,
-    message?: string
+    exitCode?: number | null,
+    message?: string,
+    stderr?: string
   ): Promise<void> {
     const url = `${this.baseUrl}/api/control/report`
+    
+    // Cap message and stderr length to prevent overly long reports
+    const cappedMessage = message ? this.capLength(message, 500) : undefined
+    const cappedStderr = stderr ? this.capLength(stderr, 1000) : undefined
+    
     const report: ActionReport = {
       actionId,
       status,
       ...(exitCode !== undefined && { exitCode }),
-      ...(message && { message }),
+      ...(cappedMessage && { message: cappedMessage }),
+      ...(cappedStderr && { stderr: cappedStderr }),
     }
 
     const response = await fetch(url, {
@@ -96,5 +106,12 @@ export class PortalClient {
       this.logger.error('Connection test failed:', error)
       return false
     }
+  }
+
+  private capLength(text: string, maxLength: number): string {
+    if (text.length <= maxLength) {
+      return text
+    }
+    return text.substring(0, maxLength - 3) + '...'
   }
 }

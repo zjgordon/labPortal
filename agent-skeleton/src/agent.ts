@@ -1,6 +1,7 @@
 import { ActionExecutor } from './action-executor'
 import { PortalClient } from './portal-client'
 import { Logger } from './logger'
+import { getConfig } from './config'
 
 export class Agent {
   private portalClient: PortalClient
@@ -10,10 +11,11 @@ export class Agent {
   private pollInterval: number
 
   constructor() {
+    const config = getConfig()
     this.portalClient = new PortalClient()
     this.actionExecutor = new ActionExecutor()
     this.logger = new Logger()
-    this.pollInterval = parseInt(process.env.POLL_INTERVAL || '4000')
+    this.pollInterval = config.pollInterval
   }
 
   async start(): Promise<void> {
@@ -84,22 +86,37 @@ export class Agent {
     this.logger.info(`Executing action ${id}: ${kind} ${unitName}`)
 
     try {
-      // Report that we're starting
+      // Report that we're starting work
       await this.portalClient.reportActionStatus(id, 'running')
 
       // Execute the systemctl command
       const result = await this.actionExecutor.execute(kind, unitName)
 
-      // Report the result
+      // Report the final result with enhanced information
       const status = result.success ? 'succeeded' : 'failed'
-      await this.portalClient.reportActionStatus(
-        id, 
-        status, 
-        result.exitCode, 
-        result.message
-      )
+      
+      if (result.isTimeout) {
+        // Handle timeout case specifically
+        await this.portalClient.reportActionStatus(
+          id, 
+          'failed', 
+          null, // exitCode is null for timeout
+          'timeout',
+          result.stderr
+        )
+        this.logger.warn(`Action ${id} timed out`)
+      } else {
+        // Report normal completion/failure
+        await this.portalClient.reportActionStatus(
+          id, 
+          status, 
+          result.exitCode, 
+          result.message,
+          result.stderr
+        )
+        this.logger.info(`Action ${id} completed with status: ${status}`)
+      }
 
-      this.logger.info(`Action ${id} completed with status: ${status}`)
     } catch (error) {
       this.logger.error(`Failed to execute action ${id}:`, error)
       
@@ -107,7 +124,7 @@ export class Agent {
       await this.portalClient.reportActionStatus(
         id, 
         'failed', 
-        -1, 
+        null, // exitCode is null for execution errors
         `Execution error: ${error instanceof Error ? error.message : String(error)}`
       )
     }

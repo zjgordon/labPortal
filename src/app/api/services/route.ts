@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { requireAdminAuth, rejectAgentTokens } from '@/lib/auth'
 import { createServiceSchema } from '@/lib/validation'
+import { verifyOrigin, createCsrfErrorResponse } from '@/lib/auth/csrf-protection'
 
 const prisma = new PrismaClient()
 
@@ -56,6 +57,11 @@ export async function POST(request: NextRequest) {
     // Check admin authentication
     const authError = await requireAdminAuth(request)
     if (authError) return authError
+    
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
+      return createCsrfErrorResponse(request)
+    }
 
     const body = await request.json()
     

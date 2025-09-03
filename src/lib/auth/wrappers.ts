@@ -48,8 +48,9 @@ export function withAgentAuth(handler: RouteHandler) {
       const principal = await getPrincipal(req, { require: 'agent' })
       const response = await handler(req, principal)
       
-      // Ensure Cache-Control: no-store is set
+      // Ensure Cache-Control: no-store and Vary: Authorization are set for agent responses
       response.headers.set('Cache-Control', 'no-store')
+      response.headers.set('Vary', 'Authorization')
       
       return response
     } catch (error) {
@@ -62,7 +63,10 @@ export function withAgentAuth(handler: RouteHandler) {
         { error: 'Internal server error' },
         { 
           status: 500,
-          headers: { 'Cache-Control': 'no-store' }
+          headers: { 
+            'Cache-Control': 'no-store',
+            'Vary': 'Authorization'
+          }
         }
       )
     }

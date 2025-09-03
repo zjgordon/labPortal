@@ -1,4 +1,5 @@
 import { exec } from 'child_process'
+import { LOCAL_ACTION_CONFIG } from './env'
 
 /**
  * Safe systemctl command executor
@@ -6,12 +7,6 @@ import { exec } from 'child_process'
  */
 export class SystemctlExecutor {
   private static readonly ALLOWED_COMMANDS = ['start', 'stop', 'restart', 'status'] as const
-  private static readonly ALLOWED_UNIT_PATTERNS = [
-    /^[a-zA-Z0-9._@-]+\.service$/,  // Standard service units
-    /^[a-zA-Z0-9._@-]+\.socket$/,   // Socket units
-    /^[a-zA-Z0-9._@-]+\.timer$/,    // Timer units
-    /^[a-zA-Z0-9._@-]+\.target$/,   // Target units
-  ]
 
   /**
    * Execute a systemctl command safely
@@ -26,70 +21,112 @@ export class SystemctlExecutor {
     stdout: string
     stderr: string
     message: string
+    durationMs: number
+    isTimeout: boolean
   }> {
+    const startTime = Date.now()
+    
     return new Promise((resolve) => {
       // Validate command
       if (!this.ALLOWED_COMMANDS.includes(command)) {
+        const durationMs = Date.now() - startTime
         resolve({
           success: false,
           exitCode: -1,
           stdout: '',
           stderr: '',
-          message: `Invalid command: ${command}. Allowed commands: ${this.ALLOWED_COMMANDS.join(', ')}`
+          message: `Invalid command: ${command}. Allowed commands: ${this.ALLOWED_COMMANDS.join(', ')}`,
+          durationMs,
+          isTimeout: false
         })
         return
       }
 
-      // Validate unit name
+      // Validate unit name against regex allowlist
       if (!this.isValidUnitName(unitName)) {
+        const durationMs = Date.now() - startTime
         resolve({
           success: false,
           exitCode: -1,
           stdout: '',
           stderr: '',
-          message: `Invalid unit name: ${unitName}. Must match allowed patterns.`
+          message: `Invalid unit name: ${unitName}. Must match allowlist regex: ${LOCAL_ACTION_CONFIG.UNIT_ALLOWLIST_REGEX}`,
+          durationMs,
+          isTimeout: false
         })
         return
       }
 
-      // Build the command
+      // Build the command - user services first, then system services
       let cmd: string
+      let args: string[]
+      
       if (allowSystemctl) {
         // Use sudo systemctl for system-wide services
+        args = ['systemctl', command, unitName]
         cmd = `sudo systemctl ${command} ${unitName}`
       } else {
         // Use user systemctl for user services
+        args = ['systemctl', '--user', command, unitName]
         cmd = `systemctl --user ${command} ${unitName}`
       }
 
-      // Execute the command
+      // Execute the command with configurable timeout
       exec(cmd, {
-        timeout: 30000, // 30 second timeout
+        timeout: LOCAL_ACTION_CONFIG.EXEC_TIMEOUT_MS,
         maxBuffer: 1024 * 1024 // 1MB buffer
       }, (error, stdout, stderr) => {
+        const durationMs = Date.now() - startTime
+        
         if (error) {
-          // Command failed
+          // Check if it's a timeout - use type assertion to handle string/number types
+          // @ts-ignore - error.code can be string or number from exec callback
+          const isTimeout = (error.code === 'ETIMEDOUT' || error.signal === 'SIGTERM')
+          
+          // Determine exit code and message
+          let exitCode: number
+          if (typeof error.code === 'number') {
+            exitCode = error.code
+          } else if (error.code === 'ETIMEDOUT') {
+            exitCode = -2 // Special exit code for timeout
+          } else {
+            exitCode = -1
+          }
+          let message: string
+          
+          if (isTimeout) {
+            exitCode = -2 // Special exit code for timeout
+            message = `Command timed out after ${LOCAL_ACTION_CONFIG.EXEC_TIMEOUT_MS}ms: systemctl ${command} ${unitName}`
+          } else {
+            // Non-zero exit code (not timeout)
+            message = this.createErrorMessage(command, unitName, stderr, exitCode)
+          }
+          
           resolve({
             success: false,
-            exitCode: error.code || -1,
+            exitCode,
             stdout: stdout || '',
             stderr: stderr || '',
-            message: `Failed to execute systemctl command: ${error.message}`
+            message,
+            durationMs,
+            isTimeout
           })
         } else {
           // Command succeeded
           const sanitizedStdout = this.sanitizeOutput(stdout || '')
           const sanitizedStderr = this.sanitizeOutput(stderr || '')
           
-          // Create user-friendly message
-          const message = this.createMessage(command, unitName, true, sanitizedStderr)
+          // Create success message
+          const message = this.createSuccessMessage(command, unitName)
 
           resolve({
             success: true,
             exitCode: 0,
             stdout: sanitizedStdout,
             stderr: sanitizedStderr,
-            message
+            message,
+            durationMs,
+            isTimeout: false
           })
         }
       })
@@ -97,10 +134,17 @@ export class SystemctlExecutor {
   }
 
   /**
-   * Validate unit name against allowed patterns
+   * Validate unit name against allowlist regex
    */
   private static isValidUnitName(unitName: string): boolean {
-    return this.ALLOWED_UNIT_PATTERNS.some(pattern => pattern.test(unitName))
+    try {
+      const regex = new RegExp(LOCAL_ACTION_CONFIG.UNIT_ALLOWLIST_REGEX)
+      return regex.test(unitName)
+    } catch (error) {
+      // If regex is invalid, fall back to basic validation
+      console.warn('Invalid UNIT_ALLOWLIST_REGEX, falling back to basic validation:', error)
+      return /^[a-zA-Z0-9._@-]+\.(service|socket|timer|target)$/.test(unitName)
+    }
   }
 
   /**
@@ -115,60 +159,41 @@ export class SystemctlExecutor {
   }
 
   /**
-   * Create user-friendly message based on command result
+   * Create success message based on command
    */
-  private static createMessage(
+  private static createSuccessMessage(
     command: string,
-    unitName: string,
-    success: boolean,
-    stderr: string
+    unitName: string
   ): string {
-    if (success) {
-      switch (command) {
-        case 'start':
-          return `Successfully started ${unitName}`
-        case 'stop':
-          return `Successfully stopped ${unitName}`
-        case 'restart':
-          return `Successfully restarted ${unitName}`
-        case 'status':
-          return `Status retrieved for ${unitName}`
-        default:
-          return `Successfully executed ${command} on ${unitName}`
-      }
-    } else {
-      if (stderr.includes('Unit not found')) {
-        return `Unit ${unitName} not found`
-      } else if (stderr.includes('Permission denied')) {
-        return `Permission denied to ${command} ${unitName}`
-      } else if (stderr.includes('Failed to start')) {
-        return `Failed to start ${unitName}: ${stderr}`
-      } else if (stderr.includes('Failed to stop')) {
-        return `Failed to stop ${unitName}: ${stderr}`
-      } else if (stderr.includes('Failed to restart')) {
-        return `Failed to restart ${unitName}: ${stderr}`
-      } else {
-        return `Failed to ${command} ${unitName}: ${stderr || 'Unknown error'}`
-      }
+    switch (command) {
+      case 'start':
+        return `Successfully started ${unitName}`
+      case 'stop':
+        return `Successfully stopped ${unitName}`
+      case 'restart':
+        return `Successfully restarted ${unitName}`
+      case 'status':
+        return `Status retrieved for ${unitName}`
+      default:
+        return `Successfully executed ${command} on ${unitName}`
     }
   }
 
   /**
-   * Check if a unit is a system service (requires sudo)
+   * Create error message based on command failure
    */
-  static isSystemService(unitName: string): boolean {
-    // Common system services that typically require sudo
-    const systemServices = [
-      'nginx.service',
-      'apache2.service',
-      'postgresql.service',
-      'mysql.service',
-      'docker.service',
-      'ssh.service',
-      'systemd-networkd.service',
-      'systemd-resolved.service'
-    ]
+  private static createErrorMessage(
+    command: string,
+    unitName: string,
+    stderr: string,
+    exitCode: number
+  ): string {
+    const sanitizedStderr = this.sanitizeOutput(stderr)
     
-    return systemServices.includes(unitName)
+    if (sanitizedStderr) {
+      return `Failed to ${command} ${unitName} (exit code: ${exitCode}): ${sanitizedStderr}`
+    } else {
+      return `Failed to ${command} ${unitName} (exit code: ${exitCode})`
+    }
   }
 }

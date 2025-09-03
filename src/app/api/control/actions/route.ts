@@ -7,6 +7,8 @@ import { LOCAL_ACTION_CONFIG } from '@/lib/env'
 import { SystemctlExecutor } from '@/lib/systemctl-executor'
 import { controlActionsRateLimiter } from '@/lib/rate-limiter'
 import { logger } from '@/lib/logger'
+import { ActionFSM } from '@/lib/control/fsm'
+import { verifyOrigin, createCsrfErrorResponse } from '@/lib/auth/csrf-protection'
 
 const prisma = new PrismaClient()
 
@@ -56,6 +58,11 @@ export async function POST(request: NextRequest) {
     
     const authError = await requireAdminAuth(request)
     if (authError) return authError
+    
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
+      return createCsrfErrorResponse(request)
+    }
 
     // Get the session to identify who requested the action
     const session = await getServerSession()
@@ -88,6 +95,46 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = createActionSchema.parse(body)
+
+    // Check for idempotency key
+    const idempotencyKey = request.headers.get('idempotency-key')
+    
+    if (idempotencyKey) {
+      // Try to find existing action with this idempotency key
+      const existingAction = await prisma.action.findUnique({
+        where: { idempotencyKey },
+        include: {
+          host: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          service: {
+            select: {
+              id: true,
+              displayName: true,
+              unitName: true,
+            },
+          },
+        },
+      })
+
+      if (existingAction) {
+        // Return existing action (idempotent response)
+        logger.securityEvent({
+          event: 'action_idempotent_return',
+          userId,
+          userEmail: requestedBy,
+          resource: 'action',
+          action: 'create_action',
+          success: true,
+          message: `Idempotent action returned: ${existingAction.id}`
+        })
+        
+        return NextResponse.json(existingAction, { status: 200 })
+      }
+    }
 
     // Verify the host exists
     const host = await prisma.host.findUnique({
@@ -166,7 +213,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create the action
+    // Create the action with idempotency key if provided
     const action = await prisma.action.create({
       data: {
         hostId: validatedData.hostId,
@@ -174,6 +221,7 @@ export async function POST(request: NextRequest) {
         kind: validatedData.kind,
         status: validatedData.status,
         requestedBy,
+        idempotencyKey: idempotencyKey || null,
       },
       include: {
         host: {
@@ -220,6 +268,8 @@ export async function POST(request: NextRequest) {
       const startTime = Date.now()
       
       try {
+        // Validate state transition: queued -> running
+        ActionFSM.guard(action.status as any, 'running')
         
         // Update status to running
         await prisma.action.update({
@@ -249,8 +299,12 @@ export async function POST(request: NextRequest) {
           LOCAL_ACTION_CONFIG.ALLOW_SYSTEMCTL
         )
 
-        const durationMs = Date.now() - startTime
+        // Use the duration from the executor result, fallback to calculated duration
+        const durationMs = result.durationMs || (Date.now() - startTime)
         const finalStatus = result.success ? 'succeeded' : 'failed'
+
+        // Validate state transition: running -> succeeded|failed
+        ActionFSM.guard('running', finalStatus as any)
 
         // Update with results
         await prisma.action.update({
@@ -319,6 +373,9 @@ export async function POST(request: NextRequest) {
         const durationMs = Date.now() - startTime
         
         console.error('Local action execution failed:', executionError)
+        
+        // Validate state transition: running -> failed
+        ActionFSM.guard('running', 'failed')
         
         // Update action as failed
         await prisma.action.update({

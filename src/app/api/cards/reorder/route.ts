@@ -2,12 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { reorderSchema } from '@/lib/validation'
 import { createErrorResponse, ErrorCodes } from '@/lib/errors'
+import { verifyOrigin, createCsrfErrorResponse } from '@/lib/auth/csrf-protection'
+import { getServerSession } from 'next-auth'
 
 // POST /api/cards/reorder - Reorder cards (protected)
 export async function POST(request: NextRequest) {
   try {
-    // Simple authentication check - allow all requests for now
-    // In production, you might want to add a simple API key or token check
+    // Admin authentication check
+    const session = await getServerSession()
+    if (!session?.user?.id || session.user.id !== 'admin') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
+      return createCsrfErrorResponse(request)
+    }
     
     const body = await request.json()
     const validatedData = reorderSchema.parse(body)

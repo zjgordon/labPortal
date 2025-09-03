@@ -2,32 +2,35 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminAuth } from '@/lib/auth'
 import { cronManager } from '@/lib/cron-manager'
 import { logger } from '@/lib/logger'
-
-export async function GET(request: NextRequest) {
-  try {
-    const authError = await requireAdminAuth(request)
-    if (authError) return authError
-
-    // Get cron jobs status
-    const jobsStatus = cronManager.getJobsStatus()
-    
-    return NextResponse.json({
-      message: 'Cron jobs status',
-      jobs: jobsStatus
-    })
-  } catch (error) {
-    console.error('Failed to get cron jobs status:', error)
-    return NextResponse.json(
-      { error: 'Failed to get cron jobs status' },
-      { status: 500 }
-    )
-  }
-}
+import { verifyOrigin, createCsrfErrorResponse } from '@/lib/auth/csrf-protection'
+import { env } from '@/lib/env'
 
 export async function POST(request: NextRequest) {
   try {
+    // Admin session authentication
     const authError = await requireAdminAuth(request)
     if (authError) return authError
+    
+    // Server-side secret validation
+    if (!env.ADMIN_CRON_SECRET) {
+      return NextResponse.json(
+        { error: 'Cron management not configured' },
+        { status: 503 }
+      )
+    }
+    
+    const cronSecret = request.headers.get('x-cron-secret')
+    if (!cronSecret || cronSecret !== env.ADMIN_CRON_SECRET) {
+      return NextResponse.json(
+        { error: 'Invalid or missing cron secret' },
+        { status: 403 }
+      )
+    }
+    
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
+      return createCsrfErrorResponse(request)
+    }
 
     const body = await request.json()
     const { action, jobId } = body

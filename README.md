@@ -43,6 +43,35 @@ A modern, cyberpunk-styled laboratory control panel and **control plane** built 
 - **Action Queue** - Comprehensive action lifecycle management
 - **Health Monitoring** - Agent heartbeat and status reporting
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`/docs`](docs/index.md) directory:
+
+### 🏗️ Architecture & Design
+- [System Design](docs/architecture/CONTROL_SYSTEM_FSM.md) - Control system finite state machine
+
+### 🔌 API Reference
+- [Agent API](docs/api/AGENT_API.md) - Complete agent system API
+- [Control Actions](docs/api/CONTROL_ACTIONS_API.md) - Control plane management
+- [Public API](docs/api/PUBLIC_API.md) - Public endpoints and status
+- [Queue Behavior](docs/api/QUEUE_ENDPOINT_BEHAVIOR.md) - Action queue semantics
+- [Security Hardening](docs/api/AGENT_ENDPOINT_HARDENING.md) - Security guidelines
+
+### 🤖 Agent System
+- [Agent Setup](docs/agent/LOCAL_ACTION_EXECUTION.md) - Local system control
+- [Agent Behavior](docs/agent/AGENT_BEHAVIOR.md) - Configuration and behavior
+- [Service Configuration](docs/agent/lab-portal-agent.service) - Systemd service setup
+
+### 🚀 Operations & Deployment
+- [Docker Setup](docs/ops/docker-compose.yml) - Development and production
+- [System Configuration](docs/ops/SUDOERS_CONFIGURATION.md) - Permissions and setup
+- [Deployment Scripts](docs/ops/setup.sh) - Automated deployment
+
+### 🧪 Development & Testing
+- [Testing Guide](docs/dev/SMOKE_TESTING.md) - Comprehensive testing
+- [Development Setup](docs/dev/TESTING.md) - Testing framework
+- [Status Testing](docs/dev/STATUS_TESTING.md) - Status system validation
+
 ## 📡 API Endpoints & Error Handling
 
 ### Endpoint Categories
@@ -89,6 +118,7 @@ The `/api/control/queue` endpoint supports long-polling:
 - **204 No Content**: No actions available (normal for empty queues)
 - **200 OK**: Actions found and returned
 - **Polling**: Use `wait` parameter (0-25 seconds) for efficient waiting
+- **Action Locking**: Actions are automatically marked as `running` when delivered to prevent duplicate processing
 
 ### One-Time Token System
 - **Agent Authentication**: Bearer tokens for secure agent identification
@@ -315,7 +345,9 @@ Get uptime statistics and performance metrics
 - `POST /api/hosts` - Create new host (admin)
 - `PUT /api/hosts/:id` - Update host (admin)
 - `DELETE /api/hosts/:id` - Delete host (admin)
-- `GET /api/hosts/:id/token` - Generate host token (admin)
+- `POST /api/hosts/:id/token` - Generate host token (admin)
+
+**Note**: Token is revealed once; only prefix + rotatedAt are stored afterwards.
 
 #### Service Management
 - `GET /api/services` - List all services (admin)
@@ -326,10 +358,91 @@ Get uptime statistics and performance metrics
 #### Control Actions
 - `POST /api/control/actions` - Create control action (admin)
 - `GET /api/control/actions/:id` - Get action status (admin)
-- `GET /api/control/queue` - Agent action polling
+- `GET /api/control/queue` - Agent action polling (supports long-polling)
 - `POST /api/control/report` - Agent status reporting
-- `GET /api/control/cron` - Cron job management (admin)
-- `POST /api/control/prune` - Manual data pruning (admin)
+- `POST /api/control/cron` - Cron job management (admin + server secret required)
+- `POST /api/control/prune` - Manual data pruning (admin + server secret required)
+
+#### GET `/api/control/queue` - Action Queue Polling
+**Purpose**: Retrieve queued actions for agent execution with long-polling support
+
+**Parameters**:
+- `max` (optional): Number of actions to return (1-10, default: 1)
+- `wait` (optional): Seconds to poll for actions (0-25, default: 0)
+
+**Behavior**:
+- **Immediate Response**: If actions are available, returns them immediately
+- **Polling Mode**: If `wait > 0` and no actions, polls database every 500ms until:
+  - Actions become available (returns 200 with actions)
+  - Wait time expires (returns 204 No Content)
+- **Action Locking**: Actions are automatically marked as `running` when delivered to prevent duplicate processing
+
+**Response Codes**:
+- `200 OK`: Actions found and returned as JSON array
+- `204 No Content`: No actions available (when wait=0 or polling timeout)
+- `400 Bad Request`: Invalid parameters (max/wait out of range)
+- `401 Unauthorized`: Missing or invalid authentication
+- `500 Internal Server Error`: Server-side errors
+
+**Example Usage**:
+```bash
+# Get up to 3 actions with 10-second polling
+curl "http://portal/api/control/queue?max=3&wait=10" \
+  -H "Authorization: Bearer <agent-token>"
+
+# Immediate response (no polling)
+curl "http://portal/api/control/queue?max=1" \
+  -H "Authorization: Bearer <agent-token>"
+```
+
+#### Public API (Read-Only)
+**Purpose**: Safe, token-gated endpoints for Grafana dashboards and monitoring tools
+
+**Authentication**: Requires `READONLY_PUBLIC_TOKEN` via query parameter or Authorization header
+- **Query Parameter**: `?token=<your-token>`
+- **Authorization Header**: `Authorization: Bearer <your-token>`
+
+**Security Features**:
+- URLs are hidden for security (only title/description exposed)
+- No admin or control data exposed
+- Cookie-based requests are rejected
+- Rate limiting applied
+
+**Endpoints**:
+
+##### GET `/api/public/cards`
+Returns enabled cards with safe information only.
+- **Fields**: `{id, title, description, iconPath, group, status}`
+- **Security**: URLs are excluded for security
+- **Example**:
+```bash
+curl "http://portal/api/public/cards?token=<your-token>"
+# or
+curl "http://portal/api/public/cards" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+##### GET `/api/public/status/summary`
+Returns uptime statistics and current status for all cards.
+- **Data**: 24h/7d uptime, lastSeen, isUp per card
+- **Overall**: Total cards, up/down counts, aggregate uptime
+- **Example**:
+```bash
+curl "http://portal/api/public/status/summary?token=<your-token>"
+```
+
+##### GET `/api/public/status/history?cardId=...&range=24h|7d`
+Returns compact time series data for specific cards.
+- **Parameters**: `cardId` (required), `range` (24h or 7d)
+- **Data**: `{ts, isUp, latency, http, message}` series
+- **Downsampling**: Automatically limited to ≤500 points for efficiency
+- **Example**:
+```bash
+curl "http://portal/api/public/status/history?cardId=card123&range=24h&token=<your-token>"
+```
+
+**Rate Limits**: Public endpoints are rate-limited to prevent abuse
+**Caching**: Responses include appropriate cache headers for monitoring tools
 
 #### Agent System
 - `POST /api/agents/heartbeat` - Agent health monitoring
@@ -424,11 +537,11 @@ BASE_URL=http://localhost:8080 ADMIN_PASSWORD=mypassword ./scripts/curl/control-
 4. Cleans up temporary files automatically
 
 **Documentation:**
-- [Comprehensive Smoke Testing Guide](SMOKE_TESTING.md)
-- [Scripts Directory](scripts/README.md)
-- [Control Actions API](CONTROL_ACTIONS_API.md)
-- [Agent System API](AGENT_API.md)
-- [Local Action Execution](LOCAL_ACTION_EXECUTION.md)
+- [Comprehensive Smoke Testing Guide](docs/dev/SMOKE_TESTING.md)
+- [Scripts Directory](docs/scripts.md)
+- [Control Actions API](docs/api/CONTROL_ACTIONS_API.md)
+- [Agent System API](docs/api/AGENT_API.md)
+- [Local Action Execution](docs/agent/LOCAL_ACTION_EXECUTION.md)
 - [Project Status](PROJECT_STATUS.md)
 
 ### Testing Framework
@@ -461,6 +574,19 @@ BASE_URL=http://localhost:8080 ADMIN_PASSWORD=mypassword ./scripts/curl/control-
 - **Authentication** - Secure admin access with NextAuth.js
 - **API Key Authentication** - Alternative authentication for automation and CI/CD
 - **XSS Protection** - Comprehensive security headers and CSP enforcement
+- **CSRF Protection** - Origin validation for state-changing operations
+
+### CSRF Protection Details
+- **Admin Routes**: Require NextAuth cookie + same-origin POSTs
+- **Origin Validation**: Origin header is enforced against `ADMIN_ALLOWED_ORIGINS` environment variable
+- **Cookie Security**: Cookies are SameSite=Lax; no CSRF tokens needed beyond Origin check
+- **State-Changing Methods**: POST/PUT/PATCH/DELETE require valid Origin header
+- **GET Requests**: Allow missing Origin header for read operations
+
+### High-Security Endpoints
+- **Cron/Prune Management**: `/api/control/cron` and `/api/control/prune` require both admin session AND server-side secret (`ADMIN_CRON_SECRET`)
+- **Server Secret**: Must be provided via `X-Cron-Secret` header for additional security layer
+- **No GET Access**: These endpoints only accept POST requests for state-changing operations
 
 ## 🛡️ Enterprise Features & Guard Rails
 

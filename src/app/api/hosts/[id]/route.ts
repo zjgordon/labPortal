@@ -5,6 +5,70 @@ import { updateHostSchema } from '@/lib/validation'
 import { verifyOrigin, getAdminCorsHeaders } from '@/lib/auth/csrf-protection'
 
 /**
+ * GET /api/hosts/:id - Get a specific host
+ * Returns host information without exposing plaintext tokens
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Validate admin authentication
+    const principal = await getPrincipal(request, { require: 'admin' })
+    
+    const { id } = params
+    
+    // Check if host exists
+    const host = await prisma.host.findUnique({
+      where: { id },
+      include: {
+        services: {
+          include: {
+            card: true
+          }
+        },
+        _count: {
+          select: {
+            services: true,
+            actions: true
+          }
+        }
+      }
+    })
+    
+    if (!host) {
+      return NextResponse.json(
+        { error: 'Host not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Return host info with only token prefix and rotation date (no plaintext)
+    const sanitizedHost = {
+      ...host,
+      agentTokenPrefix: host.agentTokenPrefix,
+      tokenRotatedAt: host.tokenRotatedAt,
+      // Explicitly exclude sensitive token data
+      agentTokenHash: undefined
+    }
+    
+    const response = NextResponse.json(sanitizedHost)
+    response.headers.set('Cache-Control', 'no-store')
+    return response
+  } catch (error) {
+    if (error instanceof Error) {
+      return createPrincipalError(error) as NextResponse
+    }
+    
+    console.error('Error fetching host:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch host' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * PUT /api/hosts/:id - Update a host
  */
 export async function PUT(

@@ -135,6 +135,7 @@ model Action {
   finishedAt  DateTime?
   exitCode    Int?
   message     String?
+  idempotencyKey String?     @unique
   host        Host           @relation(fields: [hostId], references: [id])
   service     ManagedService @relation(fields: [serviceId], references: [id])
   @@index([hostId, status])
