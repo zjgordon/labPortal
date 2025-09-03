@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateCardSchema } from '@/lib/validation'
+import { createErrorResponse, ErrorCodes } from '@/lib/errors'
+import { ResponseOptimizer } from '@/lib/response-optimizer'
 
 // PUT /api/cards/:id - Update card (protected)
 export async function PUT(
@@ -18,31 +20,60 @@ export async function PUT(
     const card = await prisma.card.update({
       where: { id },
       data: validatedData,
-      include: {
-        status: true,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        url: true,
+        iconPath: true,
+        order: true,
+        isEnabled: true,
+        group: true,
+        healthPath: true,
+        createdAt: true,
+        updatedAt: true,
+        status: {
+          select: {
+            isUp: true,
+            lastChecked: true,
+            lastHttp: true,
+            latencyMs: true,
+            message: true,
+            failCount: true,
+            nextCheckAt: true,
+          }
+        },
       },
     })
 
-    return NextResponse.json(card)
+    return NextResponse.json(card, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+      }
+    })
   } catch (error) {
     if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.message },
-        { status: 400 }
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'Validation failed',
+        400
       )
     }
 
     if (error instanceof Error && error.message.includes('Record to update not found')) {
-      return NextResponse.json(
-        { error: 'Card not found' },
-        { status: 404 }
+      return createErrorResponse(
+        ErrorCodes.NOT_FOUND,
+        'Card not found',
+        404
       )
     }
 
     console.error('Error updating card:', error)
-    return NextResponse.json(
-      { error: 'Failed to update card' },
-      { status: 500 }
+    return createErrorResponse(
+      ErrorCodes.INTERNAL_ERROR,
+      'Failed to update card',
+      500
     )
   }
 }
@@ -68,19 +99,26 @@ export async function DELETE(
       where: { id },
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true }, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+      }
+    })
   } catch (error) {
     if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
-      return NextResponse.json(
-        { error: 'Card not found' },
-        { status: 404 }
+      return createErrorResponse(
+        ErrorCodes.NOT_FOUND,
+        'Card not found',
+        404
       )
     }
 
     console.error('Error deleting card:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete card' },
-      { status: 500 }
+    return createErrorResponse(
+      ErrorCodes.INTERNAL_ERROR,
+      'Failed to delete card',
+      500
     )
   }
 }

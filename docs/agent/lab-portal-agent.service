@@ -1,0 +1,31 @@
+[Unit]
+Description=Lab Portal Agent
+Documentation=https://github.com/zjgordon/labPortal
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=labportal
+Group=labportal
+WorkingDirectory=/opt/lab-portal-agent
+ExecStart=/usr/bin/node /opt/lab-portal-agent/dist/index.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lab-portal-agent
+
+# Environment variables
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/lab-portal-agent/.env
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/lab-portal-agent/logs
+
+[Install]
+WantedBy=multi-user.target

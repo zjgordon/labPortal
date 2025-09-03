@@ -15,17 +15,38 @@ async function main() {
 
   console.log({ user })
 
-  // Clear existing cards and statuses
+  // Create or update Appearance configuration
+  const appearance = await prisma.appearance.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      instanceName: process.env.APPEARANCE_INSTANCE_NAME ?? 'Lab Portal',
+      headerText: process.env.APPEARANCE_HEADER_TEXT ?? null,
+      showClock: false,
+      theme: 'system',
+    },
+  })
+
+  console.log({ appearance })
+
+  // Clear existing data in the correct order
+  await prisma.action.deleteMany()
+  await prisma.managedService.deleteMany()
+  await prisma.statusEvent.deleteMany()
   await prisma.cardStatus.deleteMany()
   await prisma.card.deleteMany()
 
   // Create example lab tool cards
   const cards = await Promise.all([
+    // Laboratory Tools Category
     prisma.card.create({
       data: {
-        title: 'Stable Diffusion',
-        description: 'AI image generation service for creating artwork and illustrations',
-        url: 'http://localhost:7860',
+        title: 'Grafana',
+        description: 'Monitoring and observability platform for metrics, logs, and dashboards',
+        url: 'http://grafana.example.com:3000',
+        healthPath: '/api/health',
+        group: 'Laboratory Tools',
         iconPath: '/icons/ai.svg',
         order: 1,
         isEnabled: true,
@@ -33,31 +54,38 @@ async function main() {
     }),
     prisma.card.create({
       data: {
-        title: 'Router Dashboard',
-        description: 'Main network router configuration and monitoring interface',
-        url: 'http://router.local',
-        iconPath: '/icons/router.svg',
+        title: 'Gitea',
+        description: 'Self-hosted Git service for code management and collaboration',
+        url: 'http://gitea.example.com:3000',
+        healthPath: '/api/v1/version',
+        group: 'Laboratory Tools',
+        iconPath: '/icons/git.svg',
         order: 2,
         isEnabled: true,
       },
     }),
+    // AI Tools Category
     prisma.card.create({
       data: {
-        title: 'NAS Management',
-        description: 'Network Attached Storage administration panel',
-        url: 'http://nas.local:9000',
-        iconPath: '/icons/nas.svg',
-        order: 3,
+        title: 'ComfyUI',
+        description: 'Advanced AI image generation interface with node-based workflow editor',
+        url: 'http://comfyui.example.com:8188',
+        healthPath: '/system_stats',
+        group: 'AI Tools',
+        iconPath: '/icons/ai.svg',
+        order: 1,
         isEnabled: true,
       },
     }),
     prisma.card.create({
       data: {
-        title: 'Git Repository',
-        description: 'Self-hosted Git service for code management',
-        url: 'http://gitea.local',
-        iconPath: '/icons/git.svg',
-        order: 4,
+        title: 'OogaBooga',
+        description: 'Text generation AI interface for running large language models locally',
+        url: 'http://oogabooga.example.com:7860',
+        healthPath: '/api/v1/model',
+        group: 'AI Tools',
+        iconPath: '/icons/ai.svg',
+        order: 2,
         isEnabled: true,
       },
     }),
@@ -76,12 +104,63 @@ async function main() {
           lastHttp: null,
           latencyMs: null,
           message: 'Not yet checked',
+          failCount: 0,
+          nextCheckAt: null,
         },
       })
     )
   )
 
   console.log('Created statuses:', statuses)
+
+  // Clear existing hosts and services
+  await prisma.action.deleteMany()
+  await prisma.managedService.deleteMany()
+  await prisma.host.deleteMany()
+
+  // Create a local host
+  const localHost = await prisma.host.create({
+    data: {
+      name: 'local',
+      address: null,
+      agentTokenHash: null,
+      agentTokenPrefix: null,
+      tokenRotatedAt: null,
+      lastSeenAt: null,
+    },
+  })
+
+  console.log('Created host:', localHost)
+
+  // Create managed services for the local host
+  const services = await Promise.all([
+    prisma.managedService.create({
+      data: {
+        hostId: localHost.id,
+        unitName: 'nginx.service',
+        displayName: 'Nginx Web Server',
+        description: 'High-performance web server and reverse proxy',
+        allowStart: true,
+        allowStop: true,
+        allowRestart: true,
+        cardId: cards[0].id, // Link to the first card (Grafana)
+      },
+    }),
+    prisma.managedService.create({
+      data: {
+        hostId: localHost.id,
+        unitName: 'postgresql.service',
+        displayName: 'PostgreSQL Database',
+        description: 'Advanced open source relational database',
+        allowStart: true,
+        allowStop: true,
+        allowRestart: true,
+        cardId: cards[1].id, // Link to the second card (Gitea)
+      },
+    }),
+  ])
+
+  console.log('Created services:', services)
 }
 
 main()

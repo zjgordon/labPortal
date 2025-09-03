@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,8 +20,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -56,25 +52,102 @@ model VerificationToken {
 }
 
 model Card {
-  id           String   @id @default(cuid())
-  title        String
-  description  String
-  url          String
-  iconPath     String?
-  order        Int      @default(0)
-  isEnabled    Boolean  @default(true)
-  status       CardStatus?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  url         String
+  iconPath    String?
+  order       Int         @default(0)
+  isEnabled   Boolean     @default(true)
+  group       String      @default("General")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  healthPath  String?
+  status      CardStatus?
+  statusEvents StatusEvent[]
+  services    ManagedService[]
+  
+  @@index([isEnabled, order])
 }
 
 model CardStatus {
-  id          String   @id @default(cuid())
-  cardId      String   @unique
-  isUp        Boolean  @default(false)
+  id          String    @id @default(cuid())
+  cardId      String    @unique
+  isUp        Boolean   @default(false)
   lastChecked DateTime?
   lastHttp    Int?
   latencyMs   Int?
   message     String?
-  card        Card     @relation(fields: [cardId], references: [id])
+  failCount   Int       @default(0)
+  nextCheckAt DateTime?
+  card        Card      @relation(fields: [cardId], references: [id])
+}
+
+model StatusEvent {
+  id        String   @id @default(cuid())
+  cardId    String
+  timestamp DateTime @default(now())
+  isUp      Boolean
+  http      Int?
+  latencyMs Int?
+  message   String?
+  card      Card     @relation(fields: [cardId], references: [id])
+  @@index([cardId, timestamp])
+}
+
+model Host {
+  id               String   @id @default(cuid())
+  name             String
+  address          String?
+  agentTokenHash   String?
+  agentTokenPrefix String?
+  tokenRotatedAt   DateTime?
+  lastSeenAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  services         ManagedService[]
+  actions          Action[]
+}
+
+model ManagedService {
+  id           String   @id @default(cuid())
+  cardId       String?
+  hostId       String
+  unitName     String
+  displayName  String
+  description  String?
+  allowStart   Boolean  @default(true)
+  allowStop    Boolean  @default(true)
+  allowRestart Boolean  @default(true)
+  host         Host     @relation(fields: [hostId], references: [id])
+  card         Card?    @relation(fields: [cardId], references: [id])
+  actions      Action[]
+  @@unique([hostId, unitName])
+}
+
+model Action {
+  id          String   @id @default(cuid())
+  hostId      String
+  serviceId   String
+  kind        String
+  status      String         @default("queued")
+  requestedBy String?
+  requestedAt DateTime @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  exitCode    Int?
+  message     String?
+  idempotencyKey String?     @unique
+  host        Host           @relation(fields: [hostId], references: [id])
+  service     ManagedService @relation(fields: [serviceId], references: [id])
+  @@index([hostId, status])
+}
+
+model Appearance {
+  id           Int      @id @default(1)
+  instanceName String   @default("Lab Portal")
+  headerText   String?  // short banner text shown in header center
+  showClock    Boolean  @default(false) // optional: for future; leave but unused
+  theme        String   @default("system") // future: "system" | "light" | "dark"
+  updatedAt    DateTime @updatedAt
 }

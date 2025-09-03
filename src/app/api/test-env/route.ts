@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { probeUrl } from '@/lib/probe'
+import { probeUrl } from '@/lib/status/probe'
 
 // GET /api/test-env - Test environment connectivity
 export async function GET(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     console.log(`Testing connectivity to: ${testUrl}`)
     
     // Test the URL
-    const result = await probeUrl(testUrl, 5000)
+    const result = await probeUrl(testUrl, undefined, 5000)
     
     return NextResponse.json({
       url: testUrl,

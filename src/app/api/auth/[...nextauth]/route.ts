@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { env } from '@/lib/env'
 
 const handler = NextAuth({
   providers: [
@@ -19,7 +20,7 @@ const handler = NextAuth({
         }
 
         // Check admin credentials
-        if (credentials.email === "admin@local" && credentials.password === "admin123") {
+        if (credentials.email === "admin@local" && credentials.password === env.ADMIN_PASSWORD) {
           console.log("=== ADMIN LOGIN SUCCESSFUL ===")
           return {
             id: "admin",
@@ -40,8 +41,8 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.email = user.email
-        token.name = user.name
+        token.email = user.email ?? null
+        token.name = user.name ?? null
       }
       return token
     },

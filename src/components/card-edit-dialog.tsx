@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -19,15 +19,17 @@ export interface CardEditDialogProps {
     title: string
     description: string
     url: string
+    healthPath?: string | null
+    group: string
     iconPath?: string | null
     isEnabled: boolean
   } | null
-  onSave: (cardData: { title: string; description: string; url: string; isEnabled: boolean }) => void
+  onSave: (cardData: { title: string; description: string; url: string; healthPath?: string; group: string; isEnabled: boolean }) => void
   onDelete?: () => void
   isNew?: boolean
 }
 
-export function CardEditDialog({ 
+function CardEditDialogComponent({ 
   open, 
   onOpenChange, 
   card, 
@@ -38,6 +40,8 @@ export function CardEditDialog({
   const [title, setTitle] = useState(card?.title || '')
   const [description, setDescription] = useState(card?.description || '')
   const [url, setUrl] = useState(card?.url || '')
+  const [healthPath, setHealthPath] = useState(card?.healthPath || '')
+  const [group, setGroup] = useState(card?.group || 'General')
   const [isEnabled, setIsEnabled] = useState(card?.isEnabled ?? true)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadedIconPath, setUploadedIconPath] = useState(card?.iconPath || null)
@@ -46,7 +50,7 @@ export function CardEditDialog({
 
   const handleSave = () => {
     // Enhanced validation
-    if (!title.trim() || !description.trim() || !url.trim()) {
+    if (!title.trim() || !description.trim() || !url.trim() || !group.trim()) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
@@ -90,7 +94,24 @@ export function CardEditDialog({
       return
     }
 
-    onSave({ title: title.trim(), description: description.trim(), url: url.trim(), isEnabled })
+    // Validate healthPath if provided
+    if (healthPath.trim() && !healthPath.startsWith('/')) {
+      toast({
+        title: "Validation Error",
+        description: "Health path must start with / (e.g., /health, /status).",
+        variant: "destructive",
+      })
+      return
+    }
+
+    onSave({ 
+      title: title.trim(), 
+      description: description.trim(), 
+      url: url.trim(), 
+      healthPath: healthPath.trim() || undefined,
+      group: group.trim(),
+      isEnabled 
+    })
     onOpenChange(false)
   }
 
@@ -165,6 +186,8 @@ export function CardEditDialog({
     setTitle(card?.title || '')
     setDescription(card?.description || '')
     setUrl(card?.url || '')
+    setHealthPath(card?.healthPath || '')
+    setGroup(card?.group || 'General')
     setIsEnabled(card?.isEnabled ?? true)
     setUploadedIconPath(card?.iconPath || null)
   }
@@ -218,6 +241,32 @@ export function CardEditDialog({
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://example.com"
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="healthPath">Health Path (Optional)</Label>
+            <Input
+              id="healthPath"
+              value={healthPath}
+              onChange={(e) => setHealthPath(e.target.value)}
+              placeholder="/health or /status"
+            />
+            <div className="text-xs text-muted-foreground">
+              Optional health check endpoint. Must start with / (e.g., /health, /status)
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="group">Group *</Label>
+            <Input
+              id="group"
+              value={group}
+              onChange={(e) => setGroup(e.target.value)}
+              placeholder="e.g., AI Services, Network Infrastructure"
+            />
+            <div className="text-xs text-muted-foreground">
+              Group to organize related tools together
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
@@ -325,3 +374,6 @@ export function CardEditDialog({
     </Dialog>
   )
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const CardEditDialog = React.memo(CardEditDialogComponent)
