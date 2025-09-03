@@ -1,7 +1,7 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Server, Monitor, Home, Square } from 'lucide-react'
+import { Server, Monitor, Home, Square, Palette } from 'lucide-react'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -37,6 +37,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <Button variant="ghost" className="flex items-center space-x-2">
                     <Server className="h-4 w-4" />
                     <span>Services</span>
+                  </Button>
+                </Link>
+                <Link href="/admin/appearance">
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <Palette className="h-4 w-4" />
+                    <span>Appearance</span>
                   </Button>
                 </Link>
               </div>

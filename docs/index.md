@@ -13,6 +13,7 @@ Lab Portal is a modern, cyberpunk-styled laboratory control panel and control pl
 
 ### 🔌 API Reference
 - [Agent API](api/AGENT_API.md) - Complete agent system API documentation
+- [Appearance API](api/APPEARANCE_API.md) - Portal appearance and branding configuration
 - [Control Actions API](api/CONTROL_ACTIONS_API.md) - Control plane action management
 - [Public API](api/PUBLIC_API.md) - Public endpoints and status APIs
 - [Queue Endpoint Behavior](api/QUEUE_ENDPOINT_BEHAVIOR.md) - Action queue semantics and behavior

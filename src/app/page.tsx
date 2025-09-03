@@ -8,6 +8,94 @@ import { Input } from '@/components/ui/input'
 import { ExternalLink, Plus, Server, Search } from 'lucide-react'
 import Link from 'next/link'
 
+
+/**
+ * Client-side appearance header component to avoid hydration errors
+ * Fetches appearance data and renders instance name
+ */
+const AppearanceHeaderText = React.memo(function AppearanceHeaderText() {
+  const [appearance, setAppearance] = useState<{ instanceName: string; headerText: string | null }>({
+    instanceName: 'Instance',
+    headerText: null
+  })
+
+  useEffect(() => {
+    const fetchAppearance = async () => {
+      try {
+        const response = await fetch('/api/public/appearance', {
+          headers: {
+            'Authorization': 'Bearer test-public-token'
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setAppearance(data.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch appearance:', error)
+      }
+    }
+
+    // Fetch on mount
+    fetchAppearance()
+
+    // Set up interval to refresh data every 5 seconds
+    const interval = setInterval(fetchAppearance, 5000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval)
+  }, [])
+
+  return <span>{appearance.instanceName}</span>
+})
+
+/**
+ * Client-side appearance header message component
+ * Fetches appearance data and renders header message
+ */
+const AppearanceHeaderMessage = React.memo(function AppearanceHeaderMessage() {
+  const [appearance, setAppearance] = useState<{ instanceName: string; headerText: string | null }>({
+    instanceName: 'Instance',
+    headerText: 'Header Message'
+  })
+
+  useEffect(() => {
+    const fetchAppearance = async () => {
+      try {
+        const response = await fetch('/api/public/appearance', {
+          headers: {
+            'Authorization': 'Bearer test-public-token'
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setAppearance(data.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch appearance:', error)
+      }
+    }
+
+    // Fetch on mount
+    fetchAppearance()
+
+    // Set up interval to refresh data every 5 seconds
+    const interval = setInterval(fetchAppearance, 5000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval)
+  }, [])
+
+  // Show header message if it exists and is not null
+  if (!appearance.headerText) {
+    return null
+  }
+
+  return <span>{appearance.headerText}</span>
+})
+
 /**
  * Client-side time display component to avoid hydration errors
  * Renders time only after component mounts to prevent server/client mismatch
@@ -264,6 +352,29 @@ const HomePage = React.memo(function HomePage() {
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Version 0.2dev</p>
               </div>
             </div>
+
+                            {/* Center: Instance Name and Header Message */}
+                <div className="flex-1 flex justify-center px-4">
+                  <div className="max-w-md text-center">
+                    <div className="space-y-1">
+                      {/* Instance Name - Larger, Top */}
+                      <h2 
+                        className="text-lg md:text-xl font-semibold text-slate-100 truncate"
+                        aria-label="Portal instance name"
+                      >
+                        <AppearanceHeaderText />
+                      </h2>
+                      {/* Header Message - Smaller, Bottom */}
+                      <div className="text-sm md:text-base text-slate-300 truncate">
+                        <AppearanceHeaderMessage />
+                      </div>
+                    </div>
+                    {/* Optional: Future clock implementation */}
+                    <span className="text-xs text-slate-500 ml-2">
+                      {/* Clock component would go here when showClock is implemented */}
+                    </span>
+                  </div>
+                </div>
 
             {/* Right: System Status */}
             <div className="flex items-center space-x-4">

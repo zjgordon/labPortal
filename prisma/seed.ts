@@ -15,6 +15,21 @@ async function main() {
 
   console.log({ user })
 
+  // Create or update Appearance configuration
+  const appearance = await prisma.appearance.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      instanceName: process.env.APPEARANCE_INSTANCE_NAME ?? 'Lab Portal',
+      headerText: process.env.APPEARANCE_HEADER_TEXT ?? null,
+      showClock: false,
+      theme: 'system',
+    },
+  })
+
+  console.log({ appearance })
+
   // Clear existing data in the correct order
   await prisma.action.deleteMany()
   await prisma.managedService.deleteMany()
