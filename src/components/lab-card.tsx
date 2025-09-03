@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusIndicator } from "@/components/status-indicator"
 import { Sparkline } from "@/components/sparkline"
@@ -57,7 +57,7 @@ interface StatusHistory {
  * - Cyberpunk-themed styling with glow effects
  * - Status staleness detection and visual feedback
  */
-export function LabCard({ id, title, description, url, iconPath, order, services }: LabCardProps) {
+function LabCardComponent({ id, title, description, url, iconPath, order, services }: LabCardProps) {
   const { data: session } = useSession()
   const { toast } = useToast()
   const [status, setStatus] = useState<CardStatus>({
@@ -80,7 +80,7 @@ export function LabCard({ id, title, description, url, iconPath, order, services
    * Fetches the current status for this lab tool card
    * Updates the status state and handles errors gracefully
    */
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       setIsRefreshing(true)
       const response = await fetch(`/api/status?cardId=${id}`)
@@ -95,12 +95,12 @@ export function LabCard({ id, title, description, url, iconPath, order, services
     } finally {
       setIsRefreshing(false)
     }
-  }
+  }, [id])
 
   /**
    * Fetches the status history for this card
    */
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       setIsLoadingHistory(true)
       const response = await fetch(`/api/status/history?cardId=${id}&range=24h`)
@@ -115,21 +115,35 @@ export function LabCard({ id, title, description, url, iconPath, order, services
     } finally {
       setIsLoadingHistory(false)
     }
-  }
+  }, [id])
 
   // Initial status and history fetch
   useEffect(() => {
     fetchStatus()
     fetchHistory()
-  }, [id]) // Run when id changes
+  }, [id, fetchStatus, fetchHistory]) // Run when id, fetchStatus, or fetchHistory changes
 
-  // Polling every 30 seconds
+  // Staggered polling every 30 seconds with random offset (0-5s) to reduce thundering herd
   useEffect(() => {
-    const interval = setInterval(fetchStatus, 30000)
+    // Generate a random offset between 0-5 seconds for this specific card
+    const randomOffset = Math.random() * 5000
+    let intervalId: NodeJS.Timeout | null = null
+    
+    // Set initial timeout for first poll
+    const initialTimeout = setTimeout(() => {
+      fetchStatus()
+      
+      // Then set up regular 30-second interval
+      intervalId = setInterval(fetchStatus, 30000)
+    }, randomOffset)
+    
     return () => {
-      clearInterval(interval)
+      clearTimeout(initialTimeout)
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
     }
-  }, [id]) // Run when id changes
+  }, [id, fetchStatus]) // Run when id or fetchStatus changes
 
   // Refresh history every 5 minutes
   useEffect(() => {
@@ -137,7 +151,7 @@ export function LabCard({ id, title, description, url, iconPath, order, services
     return () => {
       clearInterval(interval)
     }
-  }, [id]) // Run when id changes
+  }, [id, fetchHistory]) // Run when id or fetchHistory changes
 
   /**
    * Handles card click events with intelligent URL handling
@@ -502,4 +516,7 @@ export function LabCard({ id, title, description, url, iconPath, order, services
       </Card>
     </div>
   )
-} 
+}
+
+// Memoize the component to prevent unnecessary re-renders
+export const LabCard = React.memo(LabCardComponent)

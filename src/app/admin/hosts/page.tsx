@@ -44,10 +44,6 @@ export default function AdminHostsPage() {
   const [rotating, setRotating] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchHosts()
-  }, [])
-
   const fetchHosts = useCallback(async () => {
     try {
       const response = await fetch('/api/hosts')
@@ -71,6 +67,10 @@ export default function AdminHostsPage() {
       setLoading(false)
     }
   }, [toast])
+
+  useEffect(() => {
+    fetchHosts()
+  }, [fetchHosts])
 
   const handleCreate = async () => {
     try {

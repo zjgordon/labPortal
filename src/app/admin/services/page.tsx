@@ -94,10 +94,6 @@ export default function AdminServicesPage() {
   const [actionStatuses, setActionStatuses] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchData()
-  }, [])
-
   const fetchData = useCallback(async () => {
     try {
       const [servicesRes, hostsRes, cardsRes] = await Promise.all([
@@ -128,6 +124,10 @@ export default function AdminServicesPage() {
       setLoading(false)
     }
   }, [toast])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const handleCreate = async () => {
     try {

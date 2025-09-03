@@ -7,8 +7,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Plus, Edit, Trash2, GripVertical, Eye, EyeOff, ExternalLink, Monitor, Upload } from 'lucide-react'
 import { CardEditDialog } from '@/components/card-edit-dialog'
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
+import dynamic from 'next/dynamic'
 import Image from 'next/image'
+
+// Dynamic import of heavy drag-and-drop library
+const DragDropContext = dynamic(() => import('@hello-pangea/dnd').then(mod => mod.DragDropContext), { ssr: false })
+const Droppable = dynamic(() => import('@hello-pangea/dnd').then(mod => mod.Droppable), { ssr: false })
+const Draggable = dynamic(() => import('@hello-pangea/dnd').then(mod => mod.Draggable), { ssr: false })
+
+// Import type for drag and drop
+type DropResult = import('@hello-pangea/dnd').DropResult
 
 interface AdminCard {
   id: string
@@ -37,6 +45,7 @@ export default function AdminCardsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingCard, setEditingCard] = useState<AdminCard | null>(null)
   const [isNewCard, setIsNewCard] = useState(false)
+  const [dragDropReady, setDragDropReady] = useState(false)
   const { toast } = useToast()
 
   const fetchCards = useCallback(async () => {
@@ -68,6 +77,15 @@ export default function AdminCardsPage() {
   useEffect(() => {
     fetchCards()
   }, [fetchCards])
+
+  // Enable drag and drop after a short delay to allow dynamic imports to load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDragDropReady(true)
+    }, 1000) // 1 second delay
+    
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return
@@ -386,14 +404,20 @@ export default function AdminCardsPage() {
         </div>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="cards">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="space-y-8"
-            >
+      {!dragDropReady ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin mr-3" />
+          <span className="text-lg text-gray-600">Loading drag and drop...</span>
+        </div>
+      ) : (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="cards">
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="space-y-8"
+              >
               {Object.entries(groupedCards).map(([group, groupCards]) => (
                 <div key={group} className="space-y-4">
                   {/* Group Header */}
@@ -531,6 +555,7 @@ export default function AdminCardsPage() {
           )}
         </Droppable>
       </DragDropContext>
+        )}
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

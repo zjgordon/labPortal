@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState, useMemo, useEffect } from 'react'
+import React, { Suspense, useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card as UICard, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LabCard } from '@/components/lab-card'
@@ -12,7 +12,7 @@ import Link from 'next/link'
  * Client-side time display component to avoid hydration errors
  * Renders time only after component mounts to prevent server/client mismatch
  */
-function TimeDisplay() {
+const TimeDisplay = React.memo(function TimeDisplay() {
   const [time, setTime] = useState('')
 
   useEffect(() => {
@@ -31,7 +31,7 @@ function TimeDisplay() {
   }, [])
 
   return <span>{time}</span>
-}
+})
 
 interface LabCardData {
   id: string
@@ -64,7 +64,7 @@ interface LabCardData {
  * - Loading states and error handling
  * - Responsive grid layout
  */
-function LabCardsGrid() {
+const LabCardsGrid = React.memo(function LabCardsGrid() {
   const [searchQuery, setSearchQuery] = useState('')
   const [cards, setCards] = useState<LabCardData[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -232,7 +232,7 @@ function LabCardsGrid() {
       )}
     </div>
   )
-}
+})
 
 /**
  * HomePage - Main portal interface for lab tools
@@ -242,7 +242,7 @@ function LabCardsGrid() {
  * - Responsive design with proper loading states
  * - Admin access button for configuration
  */
-export default function HomePage() {
+const HomePage = React.memo(function HomePage() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
       {/* New Cyberpunk Header */}
@@ -321,4 +321,6 @@ export default function HomePage() {
       </div>
     </div>
   )
-}
+})
+
+export default HomePage

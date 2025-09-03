@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -29,7 +29,7 @@ export interface CardEditDialogProps {
   isNew?: boolean
 }
 
-export function CardEditDialog({ 
+function CardEditDialogComponent({ 
   open, 
   onOpenChange, 
   card, 
@@ -374,3 +374,6 @@ export function CardEditDialog({
     </Dialog>
   )
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const CardEditDialog = React.memo(CardEditDialogComponent)

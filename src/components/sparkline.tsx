@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from 'react'
+import React, { useMemo } from 'react'
 
 interface SparklineProps {
   data: Array<{
@@ -18,7 +18,7 @@ interface SparklineProps {
  * Sparkline component for displaying status trends
  * Shows a mini chart of up/down status over time
  */
-export function Sparkline({ 
+function SparklineComponent({ 
   data, 
   width = 80, 
   height = 20, 
@@ -116,3 +116,6 @@ export function Sparkline({
     </div>
   )
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const Sparkline = React.memo(SparklineComponent)

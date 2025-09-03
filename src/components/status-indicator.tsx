@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { cn } from "@/lib/utils"
 
 export interface StatusIndicatorProps {
@@ -9,7 +10,7 @@ export interface StatusIndicatorProps {
   className?: string
 }
 
-export function StatusIndicator({ isUp, isRefreshing = false, error = null, className }: StatusIndicatorProps) {
+function StatusIndicatorComponent({ isUp, isRefreshing = false, error = null, className }: StatusIndicatorProps) {
   const getStatusInfo = () => {
     if (error) {
       return {
@@ -73,3 +74,6 @@ export function StatusIndicator({ isUp, isRefreshing = false, error = null, clas
     </div>
   )
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const StatusIndicator = React.memo(StatusIndicatorComponent)
