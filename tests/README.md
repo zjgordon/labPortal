@@ -129,5 +129,5 @@ npm test -- --testNamePattern="test name"
 
 - [Jest Documentation](https://jestjs.io/)
 - [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
-- [Testing Best Practices](docs/dev/TESTING.md)
-- [Smoke Testing Guide](docs/dev/SMOKE_TESTING.md)
+- [Testing Best Practices](../docs/dev/TESTING.md)
+- [Smoke Testing Guide](../docs/dev/SMOKE_TESTING.md)

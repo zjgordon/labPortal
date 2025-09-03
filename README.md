@@ -9,10 +9,6 @@ A modern, cyberpunk-styled laboratory control panel and **control plane** built 
 ![NextAuth](https://img.shields.io/badge/NextAuth-4.24-000000?style=for-the-badge&logo=next.js)
 ![Jest](https://img.shields.io/badge/Jest-30.1-C21325?style=for-the-badge&logo=jest)
 
-[![CI](https://github.com/zjgordon/labPortal/actions/workflows/ci.yml/badge.svg)](https://github.com/zjgordon/labPortal/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/zjgordon/labPortal/actions/workflows/codeql.yml/badge.svg)](https://github.com/zjgordon/labPortal/actions/workflows/codeql.yml)
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-
 ## 📁 Repository Structure
 
 ```
@@ -106,7 +102,7 @@ Comprehensive documentation is available in the [`/docs`](docs/index.md) directo
 - [Agent Setup](docs/agent/LOCAL_ACTION_EXECUTION.md) - Local system control
 - [Agent Behavior](docs/agent/AGENT_BEHAVIOR.md) - Configuration and behavior
 - [Service Configuration](docs/agent/lab-portal-agent.service) - Systemd service setup
-- [Agent Code](../agent/README.md) - Complete agent system implementation
+- [Agent Code](agent/README.md) - Complete agent system implementation
 
 ### 🚀 Operations & Deployment
 - [Docker Setup](docs/ops/docker-compose.yml) - Development and production
@@ -117,7 +113,7 @@ Comprehensive documentation is available in the [`/docs`](docs/index.md) directo
 - [Testing Guide](docs/dev/SMOKE_TESTING.md) - Comprehensive testing
 - [Development Setup](docs/dev/TESTING.md) - Testing framework
 - [Status Testing](docs/dev/STATUS_TESTING.md) - Status system validation
-- [Testing Framework](../tests/README.md) - Testing guidelines and structure
+- [Testing Framework](tests/README.md) - Testing guidelines and structure
 
 ## 📡 API Endpoints & Error Handling
 
@@ -331,7 +327,7 @@ We welcome contributions! This project is designed to be contributor-friendly wi
 
 ## 📄 License
 
-This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the ISC License.
 
 ## 🆘 Support
 

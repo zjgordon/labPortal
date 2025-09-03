@@ -2,90 +2,85 @@
 
 const fs = require('fs');
 const path = require('path');
+const glob = require('glob');
 
-// Function to extract markdown links from a file
-function extractLinks(content, filePath) {
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    const links = [];
-    let match;
+// Simple link checker for markdown files
+function checkLinks() {
+  console.log('🔍 Checking markdown links...');
+  
+  try {
+    // Find all markdown files (ignore node_modules and other build directories)
+    const markdownFiles = glob.sync('**/*.md', {
+      ignore: [
+        'node_modules/**', 
+        '.git/**', 
+        '.next/**', 
+        'dist/**',
+        'agent/node_modules/**',
+        'agent/dist/**'
+      ]
+    });
     
-    while ((match = linkRegex.exec(content)) !== null) {
-        const [, text, url] = match;
-        if (!url.startsWith('http') && !url.startsWith('mailto:') && !url.startsWith('#')) {
-            links.push({
-                text: text.trim(),
-                url: url.trim(),
-                line: content.substring(0, match.index).split('\n').length,
-                file: filePath
-            });
+    console.log(`Found ${markdownFiles.length} markdown files`);
+    
+    let totalLinks = 0;
+    let brokenLinks = 0;
+    
+    for (const file of markdownFiles) {
+      const content = fs.readFileSync(file, 'utf8');
+      const links = extractLinks(content);
+      
+      totalLinks += links.length;
+      
+      for (const link of links) {
+        if (link.startsWith('http')) {
+          // Skip external links for now to avoid network calls
+          continue;
         }
-    }
-    
-    return links;
-}
-
-// Function to check if a file exists
-function fileExists(filePath, baseDir) {
-    const fullPath = path.resolve(baseDir, filePath);
-    return fs.existsSync(fullPath);
-}
-
-// Function to check links in a directory
-function checkLinksInDirectory(dirPath, baseDir = '.') {
-    const files = fs.readdirSync(dirPath);
-    const allLinks = [];
-    
-    for (const file of files) {
-        const fullPath = path.join(dirPath, file);
-        const stat = fs.statSync(fullPath);
         
-        if (stat.isDirectory()) {
-            allLinks.push(...checkLinksInDirectory(fullPath, baseDir));
-        } else if (file.endsWith('.md')) {
-            const content = fs.readFileSync(fullPath, 'utf8');
-            const links = extractLinks(content, fullPath);
-            allLinks.push(...links);
+        if (link.startsWith('#')) {
+          // Skip anchor links
+          continue;
         }
+        
+        // Check internal file links
+        if (link.startsWith('./') || link.startsWith('../') || !link.startsWith('http')) {
+          const linkPath = path.resolve(path.dirname(file), link);
+          if (!fs.existsSync(linkPath)) {
+            console.log(`❌ Broken link in ${file}: ${link}`);
+            brokenLinks++;
+          }
+        }
+      }
     }
     
-    return allLinks;
-}
-
-// Main execution
-console.log('🔍 Checking documentation links...\n');
-
-const docsDir = './docs';
-const baseDir = '.';
-
-if (!fs.existsSync(docsDir)) {
-    console.error('❌ docs/ directory not found!');
-    process.exit(1);
-}
-
-const allLinks = checkLinksInDirectory(docsDir, baseDir);
-console.log(`Found ${allLinks.length} relative links in documentation files.\n`);
-
-let brokenLinks = 0;
-let workingLinks = 0;
-
-for (const link of allLinks) {
-    const exists = fileExists(link.url, path.dirname(link.file));
-    if (exists) {
-        workingLinks++;
-        console.log(`✅ ${link.file}:${link.line} - ${link.text} -> ${link.url}`);
+    console.log(`\n📊 Link check complete:`);
+    console.log(`   Total links found: ${totalLinks}`);
+    console.log(`   Broken links: ${brokenLinks}`);
+    
+    if (brokenLinks > 0) {
+      process.exit(1);
     } else {
-        brokenLinks++;
-        console.log(`❌ ${link.file}:${link.line} - ${link.text} -> ${link.url} (BROKEN)`);
+      console.log('✅ All internal links are valid!');
     }
-}
-
-console.log(`\n📊 Summary:`);
-console.log(`   Working links: ${workingLinks}`);
-console.log(`   Broken links: ${brokenLinks}`);
-
-if (brokenLinks > 0) {
-    console.log(`\n❌ Found ${brokenLinks} broken links that need to be fixed.`);
+    
+  } catch (error) {
+    console.error('❌ Error checking links:', error.message);
     process.exit(1);
-} else {
-    console.log(`\n✅ All documentation links are working correctly!`);
+  }
 }
+
+function extractLinks(content) {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const links = [];
+  let match;
+  
+  while ((match = linkRegex.exec(content)) !== null) {
+    links.push(match[2]);
+  }
+  
+  return links;
+}
+
+// Run the check
+checkLinks();
