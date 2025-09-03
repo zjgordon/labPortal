@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { requireAdminAuth, rejectAgentTokens } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { getPrincipal, createPrincipalError } from '@/lib/auth/principal'
 import { updateHostSchema } from '@/lib/validation'
-
-const prisma = new PrismaClient()
+import { verifyOrigin, getAdminCorsHeaders } from '@/lib/auth/csrf-protection'
 
 /**
  * PUT /api/hosts/:id - Update a host
@@ -13,14 +12,17 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Reject agent tokens on admin endpoints
-    const agentRejection = await rejectAgentTokens(request)
-    if (agentRejection) return agentRejection
+    // Validate admin authentication
+    const principal = await getPrincipal(request, { require: 'admin' })
     
-    // Check admin authentication
-    const authError = await requireAdminAuth(request)
-    if (authError) return authError
-
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
+      return NextResponse.json(
+        { error: 'CSRF protection: Invalid origin' },
+        { status: 403 }
+      )
+    }
+    
     const { id } = params
     const body = await request.json()
     
@@ -56,13 +58,13 @@ export async function PUT(
       }
     }
     
-    // Update host
+    // Update host (note: agentToken is no longer supported)
     const updatedHost = await prisma.host.update({
       where: { id },
       data: {
         name: validatedData.name,
         address: validatedData.address,
-        agentToken: validatedData.agentToken,
+        // agentToken is no longer supported - use POST /api/hosts/:id/token for token management
       },
       include: {
         services: {
@@ -79,8 +81,14 @@ export async function PUT(
       }
     })
 
-    return NextResponse.json(updatedHost)
+    const response = NextResponse.json(updatedHost)
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   } catch (error) {
+    if (error instanceof Error) {
+      return createPrincipalError(error) as NextResponse
+    }
+    
     console.error('Error updating host:', error)
     
     if (error instanceof Error && error.name === 'ZodError') {
@@ -105,14 +113,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Reject agent tokens on admin endpoints
-    const agentRejection = await rejectAgentTokens(request)
-    if (agentRejection) return agentRejection
+    // Validate admin authentication
+    const principal = await getPrincipal(request, { require: 'admin' })
     
-    // Check admin authentication
-    const authError = await requireAdminAuth(request)
-    if (authError) return authError
-
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
+      return NextResponse.json(
+        { error: 'CSRF protection: Invalid origin' },
+        { status: 403 }
+      )
+    }
+    
     const { id } = params
     
     // Check if host exists
@@ -148,8 +159,14 @@ export async function DELETE(
       where: { id }
     })
 
-    return NextResponse.json({ message: 'Host deleted successfully' })
+    const response = NextResponse.json({ message: 'Host deleted successfully' })
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   } catch (error) {
+    if (error instanceof Error) {
+      return createPrincipalError(error) as NextResponse
+    }
+    
     console.error('Error deleting host:', error)
     return NextResponse.json(
       { error: 'Failed to delete host' },

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createCardSchema } from '@/lib/validation'
+import { withNoCache, withAdminAuth } from '@/lib/auth/wrappers'
+import type { Principal } from '@/lib/auth/principal'
+import { verifyOrigin, getAdminCorsHeaders } from '@/lib/auth/csrf-protection'
 
 // GET /api/cards - Public route for enabled cards
-export async function GET() {
+export const GET = withNoCache(async () => {
   try {
     const cards = await prisma.card.findMany({
       where: { isEnabled: true },
@@ -40,17 +43,16 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})
 
-// POST /api/cards - Create new card (protected)
-export async function POST(request: NextRequest) {
+// POST /api/cards - Create new card (admin protected)
+export const POST = withAdminAuth(async (request: NextRequest, principal: Principal) => {
   try {
-    // Basic authentication check - in production, implement proper JWT or session validation
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'CSRF protection: Invalid origin' },
+        { status: 403 }
       )
     }
     
@@ -88,4 +90,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

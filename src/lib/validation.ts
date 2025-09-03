@@ -203,7 +203,8 @@ export const actionStatusSchema = z.enum(['queued', 'running', 'completed', 'fai
 export const createHostSchema = z.object({
   name: hostNameSchema,
   address: addressSchema,
-  agentToken: z.string().optional(),
+  // Note: agentToken is no longer supported
+  // Use POST /api/hosts/:id/token for token management
 })
 
 /**
@@ -212,7 +213,8 @@ export const createHostSchema = z.object({
 export const updateHostSchema = z.object({
   name: hostNameSchema.optional(),
   address: addressSchema,
-  agentToken: z.string().optional(),
+  // Note: agentToken is no longer supported
+  // Use POST /api/hosts/:id/token for token management
 })
 
 /**

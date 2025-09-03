@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { requireAdminAuth, rejectAgentTokens } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { createHostSchema } from '@/lib/validation'
-
-const prisma = new PrismaClient()
+import { withAdminAuth } from '@/lib/auth/wrappers'
+import type { Principal } from '@/lib/auth/principal'
+import { verifyOrigin, getAdminCorsHeaders } from '@/lib/auth/csrf-protection'
 
 /**
  * GET /api/hosts - Get all hosts
  */
-export async function GET(request: NextRequest) {
+export const GET = withAdminAuth(async (request: NextRequest, principal: Principal) => {
   try {
-    // Reject agent tokens on admin endpoints
-    const agentRejection = await rejectAgentTokens(request)
-    if (agentRejection) return agentRejection
-    
-    // Check admin authentication
-    const authError = await requireAdminAuth(request)
-    if (authError) return authError
-
     const hosts = await prisma.host.findMany({
       include: {
         services: {
@@ -37,7 +29,16 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json(hosts)
+    // Remove sensitive token data and return only prefix + rotation date
+    const sanitizedHosts = hosts.map(host => ({
+      ...host,
+      agentTokenPrefix: host.agentTokenPrefix,
+      tokenRotatedAt: host.tokenRotatedAt,
+      // Explicitly exclude agentTokenHash
+      agentTokenHash: undefined
+    }))
+
+    return NextResponse.json(sanitizedHosts)
   } catch (error) {
     console.error('Error fetching hosts:', error)
     return NextResponse.json(
@@ -45,21 +46,21 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * POST /api/hosts - Create a new host
  */
-export async function POST(request: NextRequest) {
+export const POST = withAdminAuth(async (request: NextRequest, principal: Principal) => {
   try {
-    // Reject agent tokens on admin endpoints
-    const agentRejection = await rejectAgentTokens(request)
-    if (agentRejection) return agentRejection
+    // CSRF protection for state-changing methods
+    if (!verifyOrigin(request)) {
+      return NextResponse.json(
+        { error: 'CSRF protection: Invalid origin' },
+        { status: 403 }
+      )
+    }
     
-    // Check admin authentication
-    const authError = await requireAdminAuth(request)
-    if (authError) return authError
-
     const body = await request.json()
     
     // Validate input
@@ -82,7 +83,8 @@ export async function POST(request: NextRequest) {
       data: {
         name: validatedData.name,
         address: validatedData.address,
-        agentToken: validatedData.agentToken || null,
+        // Note: agentToken is no longer supported
+        // Use POST /api/hosts/:id/token for token management
       },
       include: {
         services: true,
@@ -111,4 +113,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

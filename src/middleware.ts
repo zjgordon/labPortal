@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import { statusRateLimiter } from "@/lib/rate-limiter"
+import { getAdminCorsHeaders } from "@/lib/auth/csrf-protection"
 
 /**
  * Next.js middleware for security headers and rate limiting
@@ -53,6 +54,22 @@ export default async function middleware(req: NextRequest) {
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  
+  // Set Cache-Control: no-store for all API routes
+  if (pathname.startsWith('/api/')) {
+    response.headers.set('Cache-Control', 'no-store')
+    
+    // Add CORS headers for admin routes
+    if (pathname.startsWith('/api/hosts') || 
+        pathname.startsWith('/api/cards') || 
+        pathname.startsWith('/api/services') ||
+        pathname.startsWith('/api/control')) {
+      const corsHeaders = getAdminCorsHeaders(req)
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+    }
+  }
 
   return response
 }

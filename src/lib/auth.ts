@@ -61,9 +61,12 @@ export async function isAgentAuthenticated(request: NextRequest): Promise<boolea
       return false
     }
     
-    // Check if token exists in database
+    // Check if token hash exists in database
+    const { getTokenHash } = require('./auth/token-utils')
+    const tokenHash = getTokenHash(token)
+    
     const host = await prisma.host.findFirst({
-      where: { agentToken: token }
+      where: { agentTokenHash: tokenHash }
     })
     
     return !!host
@@ -88,9 +91,12 @@ export async function getHostFromToken(request: NextRequest): Promise<any> {
       return null
     }
     
-    // Get host from token
+    // Get host from token hash
+    const { getTokenHash } = require('./auth/token-utils')
+    const tokenHash = getTokenHash(token)
+    
     const host = await prisma.host.findFirst({
-      where: { agentToken: token }
+      where: { agentTokenHash: tokenHash }
     })
     
     return host
@@ -134,12 +140,22 @@ export async function rejectAgentTokens(request: NextRequest): Promise<NextRespo
 
 /**
  * Generate a random agent token
+ * @deprecated Use generateAgentToken from '@/lib/auth/token-utils' instead
  */
 export function generateAgentToken(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  let result = ''
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return result
+  const { generateAgentToken: newGenerateToken } = require('./auth/token-utils')
+  const tokenInfo = newGenerateToken()
+  return tokenInfo.plaintext
 }
+
+// Note: The following functions have been moved to the new principal-based system:
+// - isAdminAuthenticated -> getAdminPrincipal
+// - requireAdminAuth -> withAdminAuth wrapper
+// - isAgentAuthenticated -> getAgentPrincipal  
+// - getHostFromToken -> getAgentPrincipal
+// - requireAgentAuth -> withAgentAuth wrapper
+// - rejectAgentTokens -> handled automatically by getPrincipal
+
+// For new code, use the new system:
+// import { withAdminAuth, withAgentAuth, withNoCache } from '@/lib/auth/wrappers'
+// import { getPrincipal } from '@/lib/auth/principal'

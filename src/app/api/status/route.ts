@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { probeUrl } from '@/lib/probe'
 import { statusQuerySchema } from '@/lib/validation'
+import { withNoCache } from '@/lib/auth/wrappers'
 
 // GET /api/status?cardId=... - Check card status with enhanced caching and fail tracking
-export async function GET(request: NextRequest) {
+export const GET = withNoCache(async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url)
     const cardId = searchParams.get('cardId')
@@ -150,4 +151,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

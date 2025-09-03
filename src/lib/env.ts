@@ -6,6 +6,7 @@ const envSchema = z.object({
   NEXTAUTH_URL: z.string().url().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
+  ADMIN_ALLOWED_ORIGINS: z.string().default('http://localhost:3000,https://portal.local'),
 })
 
 // Lazy environment validation - only parse when accessed

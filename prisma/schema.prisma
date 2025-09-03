@@ -94,15 +94,17 @@ model StatusEvent {
 }
 
 model Host {
-  id         String   @id @default(cuid())
-  name       String
-  address    String?
-  agentToken String?
-  lastSeenAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  services   ManagedService[]
-  actions    Action[]
+  id               String   @id @default(cuid())
+  name             String
+  address          String?
+  agentTokenHash   String?
+  agentTokenPrefix String?
+  tokenRotatedAt   DateTime?
+  lastSeenAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  services         ManagedService[]
+  actions          Action[]
 }
 
 model ManagedService {

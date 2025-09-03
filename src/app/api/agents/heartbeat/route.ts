@@ -1,30 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { requireAgentAuth, getHostFromToken } from '@/lib/auth'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
+import { withAgentAuth } from '@/lib/auth/wrappers'
+import type { Principal } from '@/lib/auth/principal'
 
 /**
  * POST /api/agents/heartbeat - Update host lastSeenAt timestamp
  */
-export async function POST(request: NextRequest) {
+export const POST = withAgentAuth(async (request: NextRequest, principal: Principal) => {
   try {
-    // Check agent authentication
-    const authError = await requireAgentAuth(request)
-    if (authError) return authError
-
-    // Get the host from the token
-    const host = await getHostFromToken(request)
-    if (!host) {
-      return NextResponse.json(
-        { error: 'Host not found for token' },
-        { status: 404 }
-      )
+    // The principal is already validated and contains the hostId
+    // Since this is an agent route, principal will be AgentPrincipal
+    if (principal.type !== 'agent') {
+      throw new Error('Expected agent principal')
     }
+    const { hostId } = principal
 
     // Update the host's lastSeenAt timestamp
     const updatedHost = await prisma.host.update({
-      where: { id: host.id },
+      where: { id: hostId },
       data: {
         lastSeenAt: new Date()
       },
@@ -37,7 +30,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Heartbeat received',
-      host: updatedHost
+      host: updatedHost,
+      principal: principal
     })
   } catch (error) {
     console.error('Error processing agent heartbeat:', error)
@@ -46,4 +40,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

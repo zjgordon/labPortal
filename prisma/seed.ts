@@ -108,7 +108,9 @@ async function main() {
     data: {
       name: 'local',
       address: null,
-      agentToken: null,
+      agentTokenHash: null,
+      agentTokenPrefix: null,
+      tokenRotatedAt: null,
       lastSeenAt: null,
     },
   })
