@@ -2827,3 +2827,187 @@ The Lab Portal now provides a **comprehensive, professionally documented Appeara
 - **Integration Ready**: External systems can easily integrate with documented APIs
 
 The Appearance feature is now **fully complete** with comprehensive functionality, documentation, and integration, providing administrators with a professional, reliable, and well-documented system for customizing portal branding and appearance.
+
+## 🚀 Session 7: Agent Framework, Diagnostics, and Deployment Infrastructure
+
+### 84. Agent Packaging and Deployment System
+
+- ✅ **Professional Packaging Structure**: Created `agent/packaging/` directory with comprehensive installation and management scripts
+- ✅ **Installation Script (`install.sh`)**: Complete agent installation with user creation, service setup, and security hardening
+- ✅ **Uninstallation Script (`uninstall.sh`)**: Clean removal with confirmation prompts and comprehensive cleanup
+- ✅ **Configuration Script (`configure.sh`)**: Interactive configuration management with validation and service integration
+- ✅ **Systemd Service Template**: Production-ready systemd service file with security settings and resource limits
+- ✅ **Makefile Integration**: Enhanced Makefile with version-based packaging and improved deployment workflows
+
+#### Agent Packaging Features
+
+- **User Isolation**: Dedicated `lab-portal` user with no shell access for security
+- **Service Management**: Complete systemd integration with auto-start and restart policies
+- **Security Hardening**: NoNewPrivileges, PrivateTmp, ProtectSystem, and resource limits
+- **Configuration Management**: Multiple configuration modes (show, edit, interactive, validate)
+- **Error Handling**: Comprehensive error checking with colored output and clear messages
+- **Documentation**: Complete installation guide with troubleshooting and best practices
+
+#### Deployment Workflow
+
+- **Version-based Packaging**: Packages as `agent-labportal-<version>.tgz` with proper versioning
+- **Complete Package Contents**: Includes `dist/`, `packaging/`, configuration files, and documentation
+- **Remote Installation**: `make agent-install HOST=hostname` for automated remote deployment
+- **Clean Uninstallation**: `make agent-uninstall HOST=hostname` for complete removal
+- **Interactive Prompts**: Confirmation dialogs for safety during remote operations
+
+### 85. Portal Management Scripts
+
+- ✅ **Portal Startup Script (`scripts/portal-up.sh`)**: Comprehensive startup with environment validation, migrations, and health checks
+- ✅ **Portal Shutdown Script (`scripts/portal-down.sh`)**: Clean shutdown with multiple detection methods and process cleanup
+- ✅ **Environment Validation**: Validates required environment variables and database connectivity
+- ✅ **Database Migrations**: Automatic Prisma migration execution before startup
+- ✅ **Process Management**: Support for both PM2 and npm start methods with proper PID tracking
+- ✅ **Health Monitoring**: Waits for portal readiness with HTTP health checks and timeout handling
+
+#### Portal Management Features
+
+- **Environment Safety**: Validates all required environment variables before startup
+- **Database Integration**: Automatic migration execution and connectivity validation
+- **Process Detection**: Multiple methods for finding and stopping portal processes
+- **Health Checks**: HTTP endpoint validation with configurable timeouts
+- **URL Display**: Shows all relevant portal URLs after successful startup
+- **Error Recovery**: Comprehensive error handling with clear messages and exit codes
+
+#### Management Workflow
+
+- **Startup Process**: Environment validation → migrations → process start → health checks → URL display
+- **Shutdown Process**: Process detection → graceful termination → force kill fallback → cleanup
+- **Status Checking**: Comprehensive status reporting with PM2, PID files, and process search
+- **Service Integration**: Works with both PM2 and npm start methods seamlessly
+
+### 86. Comprehensive Diagnostics System
+
+- ✅ **Diagnostics Script (`scripts/diag.sh`)**: Complete system information collection and packaging
+- ✅ **Version Information**: Node.js, NPM, application, and agent version collection
+- ✅ **Environment Validation**: Comprehensive environment variable validation and format checking
+- ✅ **Database Status**: Prisma CLI availability, database file size, migration status, and connectivity
+- ✅ **API Health Checks**: Tests all critical endpoints (`/healthz`, `/readyz`, `/api/public/status/summary`, `/api/control/diagnostics`)
+- ✅ **Log Collection**: Recent logs from portal, agent, systemd, and NPM with configurable retention
+- ✅ **System Information**: Memory usage, disk space, process information, and network connections
+- ✅ **Admin Diagnostics**: Attempts to retrieve action counts, host status, and recent failures from admin API
+
+#### Diagnostics Features
+
+- **Comprehensive Data Collection**: System, application, database, API, and log information
+- **Timestamped Archives**: Creates `diag-<timestamp>.tar.gz` files for easy distribution
+- **Structured Output**: Organized into separate files for each category of information
+- **Error Handling**: Graceful handling of missing files, endpoints, and services
+- **Professional Formatting**: Colored output with clear success/failure indicators
+- **Cleanup Management**: Automatic cleanup of temporary files after packaging
+
+#### Diagnostics Output Structure
+
+```
+diag-YYYYMMDD_HHMMSS/
+├── versions.txt           # Node.js, NPM, app versions
+├── environment.txt        # Environment validation results
+├── prisma-status.txt      # Database status and migrations
+├── api-tests.txt          # API endpoint health checks
+├── admin-diagnostics.txt  # Admin API diagnostics data
+├── system-info.txt        # System resource information
+├── diagnostics.log        # Script execution log
+└── logs/
+    ├── portal.log         # Portal application logs
+    ├── agent.log          # Agent logs (if available)
+    └── systemd-agent.log  # Systemd service logs
+```
+
+### 87. Enhanced Makefile and Automation
+
+- ✅ **Version-based Packaging**: Agent packages include version numbers from package.json
+- ✅ **Improved Deployment**: Enhanced agent-install and agent-uninstall targets with better error handling
+- ✅ **Portal Management**: New portal-up and portal-down targets for easy portal lifecycle management
+- ✅ **Help System**: Comprehensive help messages for all targets with usage examples
+- ✅ **Interactive Prompts**: Safety confirmations for destructive operations
+
+#### Makefile Enhancements
+
+- **Agent Packaging**: `make agent-package` creates versioned archives with complete contents
+- **Remote Deployment**: `make agent-install HOST=hostname` for automated remote installation
+- **Clean Removal**: `make agent-uninstall HOST=hostname` for complete agent removal
+- **Portal Management**: `make portal-up` and `make portal-down` for portal lifecycle
+- **Help System**: `make help` and individual target help for easy usage
+
+### 88. Documentation and Integration
+
+- ✅ **Agent Installation Guide**: Comprehensive `docs/agent/install.md` with step-by-step instructions
+- ✅ **Troubleshooting Documentation**: Common issues, solutions, and debug commands
+- ✅ **Security Best Practices**: User isolation, file permissions, and systemd security settings
+- ✅ **Integration Examples**: Make-based and manual installation workflows
+- ✅ **Professional Presentation**: Enterprise-grade documentation matching enterprise-grade functionality
+
+#### Documentation Coverage
+
+- **Installation Guide**: Complete setup instructions for both Make-based and manual installation
+- **Configuration Management**: Environment setup, validation, and troubleshooting
+- **Service Management**: Systemd service configuration and management
+- **Security Considerations**: Best practices for secure agent deployment
+- **Troubleshooting**: Common issues and solutions with debug commands
+
+## 🎯 Enhanced Agent and Deployment Infrastructure
+
+The Lab Portal now provides **comprehensive agent framework and deployment infrastructure** with:
+
+### Agent Management
+
+- **Professional Packaging**: Complete agent packaging with installation, configuration, and management scripts
+- **Secure Deployment**: User isolation, security hardening, and proper service management
+- **Remote Operations**: Automated remote installation and uninstallation with safety confirmations
+- **Configuration Management**: Interactive configuration with validation and service integration
+- **Documentation**: Comprehensive installation guides and troubleshooting documentation
+
+### Portal Management
+
+- **Lifecycle Management**: Complete portal startup and shutdown with health monitoring
+- **Environment Safety**: Comprehensive environment validation before startup
+- **Database Integration**: Automatic migration execution and connectivity validation
+- **Process Management**: Support for both PM2 and npm start methods
+- **Health Monitoring**: HTTP endpoint validation with configurable timeouts
+
+### Diagnostics and Monitoring
+
+- **Comprehensive Diagnostics**: Complete system information collection and packaging
+- **Professional Output**: Timestamped archives with structured data organization
+- **API Health Checks**: Tests all critical endpoints for system health
+- **Log Collection**: Recent logs from all system components
+- **System Information**: Resource usage, process information, and network status
+
+### Development and Operations
+
+- **Automated Workflows**: Make-based automation for common operations
+- **Safety Features**: Interactive confirmations and comprehensive error handling
+- **Professional Documentation**: Enterprise-grade guides and troubleshooting
+- **Version Management**: Proper versioning and packaging for deployment
+- **Integration Ready**: Easy integration with CI/CD and monitoring systems
+
+## 🚀 Ready for Off-Site Testing and Production Deployment
+
+The Lab Portal agent framework and deployment infrastructure is now ready for:
+
+1. **Remote Agent Deployment**: Automated installation and configuration on remote hosts
+2. **Off-Site Testing**: Comprehensive diagnostics and monitoring for distributed testing
+3. **Production Operations**: Professional portal management and lifecycle operations
+4. **Troubleshooting**: Complete diagnostic information collection and analysis
+5. **Team Collaboration**: Clear documentation and automated workflows for team use
+6. **CI/CD Integration**: Automated deployment and testing capabilities
+7. **Monitoring Integration**: Comprehensive system information for external monitoring
+8. **Professional Operations**: Enterprise-grade deployment and management tools
+9. **Security Compliance**: Secure agent deployment with proper isolation and hardening
+10. **Scalable Deployment**: Framework ready for multiple agent deployments
+
+### Key Benefits Achieved
+
+- **🚀 Agent Framework**: Professional packaging and deployment system for remote agents
+- **📊 Diagnostics**: Comprehensive system information collection and analysis
+- **🔧 Portal Management**: Complete lifecycle management with health monitoring
+- **🛡️ Security**: Secure agent deployment with user isolation and hardening
+- **📚 Documentation**: Professional guides and troubleshooting documentation
+- **⚡ Automation**: Make-based workflows for common operations
+
+The agent framework, diagnostics, and deployment infrastructure represent a significant improvement in the Lab Portal's operational capabilities, completing the transformation into a production-ready system with comprehensive agent management, portal lifecycle operations, and diagnostic capabilities that enable off-site testing and professional deployment at scale.

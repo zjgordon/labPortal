@@ -1,0 +1,36 @@
+[Unit]
+Description=Lab Portal Agent
+Documentation=https://github.com/your-org/lab-portal
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=lab-portal
+Group=lab-portal
+WorkingDirectory=/opt/lab-portal-agent
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lab-portal-agent
+
+# Environment variables (loaded from .env file)
+EnvironmentFile=/opt/lab-portal-agent/.env
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/lab-portal-agent
+ReadWritePaths=/var/log/lab-portal-agent
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=256M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

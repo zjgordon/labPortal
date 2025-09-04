@@ -1,4 +1,4 @@
-import { env } from '@/lib/env'
+import { env } from '@/lib/env';
 
 /**
  * Enhanced logging system for Lab Portal
@@ -11,56 +11,57 @@ import { env } from '@/lib/env'
  */
 
 export interface ActionLogData {
-  actionId: string
-  hostId: string
-  hostName: string
-  serviceId: string
-  serviceName: string
-  action: string
-  status: string
-  requestedBy: string
-  message?: string
-  exitCode?: number
-  durationMs?: number
+  actionId: string;
+  requestId?: string;
+  hostId: string;
+  hostName: string;
+  serviceId: string;
+  serviceName: string;
+  action: string;
+  status: string;
+  requestedBy: string;
+  message?: string;
+  exitCode?: number;
+  durationMs?: number;
 }
 
 export interface SecurityLogData {
-  event: string
-  userId?: string
-  userEmail?: string
-  ipAddress?: string
-  resource?: string
-  action?: string
-  success: boolean
-  message: string
+  event: string;
+  userId?: string;
+  userEmail?: string;
+  ipAddress?: string;
+  resource?: string;
+  action?: string;
+  success: boolean;
+  message: string;
 }
 
 class Logger {
   private getTimestamp(): string {
-    return new Date().toISOString()
+    return new Date().toISOString();
   }
 
   private formatMessage(level: string, message: string, data?: any): string {
-    const timestamp = this.getTimestamp()
-    const dataStr = data ? ` | ${JSON.stringify(data)}` : ''
-    return `[${timestamp}] [${level}] ${message}${dataStr}`
+    const timestamp = this.getTimestamp();
+    const dataStr = data ? ` | ${JSON.stringify(data)}` : '';
+    return `[${timestamp}] [${level}] ${message}${dataStr}`;
   }
 
   info(message: string, data?: any): void {
-    console.log(this.formatMessage('INFO', message, data))
+    console.log(this.formatMessage('INFO', message, data));
   }
 
   warn(message: string, data?: any): void {
-    console.warn(this.formatMessage('WARN', message, data))
+    console.warn(this.formatMessage('WARN', message, data));
   }
 
   error(message: string, data?: any): void {
-    console.error(this.formatMessage('ERROR', message, data))
+    console.error(this.formatMessage('ERROR', message, data));
   }
 
   debug(message: string, data?: any): void {
     if (env.NODE_ENV === 'development') {
-      console.log(this.formatMessage('DEBUG', message, data))
+      console.log(this.formatMessage('DEBUG', message, data));
     }
   }
 
@@ -68,31 +69,34 @@ class Logger {
   actionQueued(data: ActionLogData): void {
     this.info('Action queued', {
       actionId: data.actionId,
+      requestId: data.requestId,
       hostId: data.hostId,
       hostName: data.hostName,
       serviceId: data.serviceId,
       serviceName: data.serviceName,
       action: data.action,
       requestedBy: data.requestedBy,
-      timestamp: this.getTimestamp()
-    })
+      timestamp: this.getTimestamp(),
+    });
   }
 
   actionStarted(data: ActionLogData): void {
     this.info('Action started', {
       actionId: data.actionId,
+      requestId: data.requestId,
       hostId: data.hostId,
       hostName: data.hostName,
       serviceId: data.serviceId,
       serviceName: data.serviceName,
       action: data.action,
-      timestamp: this.getTimestamp()
-    })
+      timestamp: this.getTimestamp(),
+    });
   }
 
   actionCompleted(data: ActionLogData): void {
     this.info('Action completed', {
       actionId: data.actionId,
+      requestId: data.requestId,
       hostId: data.hostId,
       hostName: data.hostName,
       serviceId: data.serviceId,
@@ -102,13 +106,14 @@ class Logger {
       exitCode: data.exitCode,
       durationMs: data.durationMs,
       message: data.message,
-      timestamp: this.getTimestamp()
-    })
+      timestamp: this.getTimestamp(),
+    });
   }
 
   actionFailed(data: ActionLogData): void {
     this.error('Action failed', {
       actionId: data.actionId,
+      requestId: data.requestId,
       hostId: data.hostId,
       hostName: data.hostName,
       serviceId: data.serviceId,
@@ -118,8 +123,8 @@ class Logger {
       exitCode: data.exitCode,
       durationMs: data.durationMs,
       message: data.message,
-      timestamp: this.getTimestamp()
-    })
+      timestamp: this.getTimestamp(),
+    });
   }
 
   // Security event logging
@@ -133,13 +138,13 @@ class Logger {
       action: data.action,
       success: data.success,
       message: data.message,
-      timestamp: this.getTimestamp()
-    }
+      timestamp: this.getTimestamp(),
+    };
 
     if (data.success) {
-      this.info('Security event', logData)
+      this.info('Security event', logData);
     } else {
-      this.warn('Security event', logData)
+      this.warn('Security event', logData);
     }
   }
 
@@ -149,8 +154,8 @@ class Logger {
       identifier,
       endpoint,
       limit,
-      timestamp: this.getTimestamp()
-    })
+      timestamp: this.getTimestamp(),
+    });
   }
 
   // System health logging
@@ -159,9 +164,14 @@ class Logger {
       component,
       status,
       details,
-      timestamp: this.getTimestamp()
-    })
+      timestamp: this.getTimestamp(),
+    });
+  }
+
+  // Generate a unique request ID for tracking
+  generateRequestId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }
 
-export const logger = new Logger()
+export const logger = new Logger();

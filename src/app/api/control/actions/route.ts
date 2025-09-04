@@ -24,7 +24,66 @@ export async function GET(request: NextRequest) {
     const authError = await requireAdminAuth(request);
     if (authError) return authError;
 
+    // Parse query parameters
+    const { searchParams } = new URL(request.url);
+    const serviceId = searchParams.get('serviceId');
+    const hostId = searchParams.get('hostId');
+    const status = searchParams.get('status');
+    const kind = searchParams.get('kind');
+    const range = searchParams.get('range'); // 1h, 24h, 7d
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const offset = (page - 1) * limit;
+
+    // Build where clause
+    const where: any = {};
+
+    if (serviceId) {
+      where.serviceId = serviceId;
+    }
+
+    if (hostId) {
+      where.hostId = hostId;
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (kind) {
+      where.kind = kind;
+    }
+
+    // Handle time range filtering
+    if (range) {
+      const now = new Date();
+      let startDate: Date;
+
+      switch (range) {
+        case '1h':
+          startDate = new Date(now.getTime() - 60 * 60 * 1000);
+          break;
+        case '24h':
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case '7d':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Default to 24h
+      }
+
+      where.requestedAt = {
+        gte: startDate,
+      };
+    }
+
+    // Get total count for pagination
+    const totalCount = await prisma.action.count({ where });
+
+    // Fetch actions with pagination
     const actions = await prisma.action.findMany({
+      where,
       include: {
         host: {
           select: {
@@ -43,9 +102,26 @@ export async function GET(request: NextRequest) {
       orderBy: {
         requestedAt: 'desc',
       },
+      skip: offset,
+      take: limit,
     });
 
-    return ResponseHelper.success(actions, 'admin');
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return ResponseHelper.success(
+      {
+        actions,
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+        },
+      },
+      'admin'
+    );
   } catch (error) {
     console.error('Failed to fetch actions:', error);
     return ResponseHelper.error('Failed to fetch actions', 'admin', 500);
@@ -69,6 +145,9 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession();
     const requestedBy = session?.user?.email || 'unknown';
     const userId = session?.user?.id || 'unknown';
+
+    // Generate request ID for tracking
+    const requestId = logger.generateRequestId();
 
     // Rate limiting check - 10 actions per minute per admin
     const rateLimitKey = `admin:${requestedBy}`;
@@ -244,6 +323,7 @@ export async function POST(request: NextRequest) {
     // Log action creation
     logger.actionQueued({
       actionId: action.id,
+      requestId: requestId,
       hostId: action.hostId,
       hostName: action.host.name,
       serviceId: action.serviceId,
@@ -284,6 +364,7 @@ export async function POST(request: NextRequest) {
         // Log action started
         logger.actionStarted({
           actionId: action.id,
+          requestId: requestId,
           hostId: action.hostId,
           hostName: action.host.name,
           serviceId: action.serviceId,
@@ -322,6 +403,7 @@ export async function POST(request: NextRequest) {
         if (result.success) {
           logger.actionCompleted({
             actionId: action.id,
+            requestId: requestId,
             hostId: action.hostId,
             hostName: action.host.name,
             serviceId: action.serviceId,
@@ -336,6 +418,7 @@ export async function POST(request: NextRequest) {
         } else {
           logger.actionFailed({
             actionId: action.id,
+            requestId: requestId,
             hostId: action.hostId,
             hostName: action.host.name,
             serviceId: action.serviceId,
@@ -392,6 +475,7 @@ export async function POST(request: NextRequest) {
         // Log action failure
         logger.actionFailed({
           actionId: action.id,
+          requestId: requestId,
           hostId: action.hostId,
           hostName: action.host.name,
           serviceId: action.serviceId,

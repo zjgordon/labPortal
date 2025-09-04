@@ -5,7 +5,15 @@ import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Server, Monitor, Home, Square, Palette, LogOut } from 'lucide-react';
+import {
+  Server,
+  Monitor,
+  Home,
+  Square,
+  Palette,
+  LogOut,
+  Activity,
+} from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { isControlPlaneEnabled } from '@/lib/control/control-plane';
 
@@ -100,6 +108,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       >
                         <Server className="h-4 w-4" />
                         <span>Services</span>
+                      </Button>
+                    </Link>
+                    <Link href="/admin/actions">
+                      <Button
+                        variant="ghost"
+                        className="flex items-center space-x-2"
+                      >
+                        <Activity className="h-4 w-4" />
+                        <span>Actions</span>
                       </Button>
                     </Link>
                   </>
