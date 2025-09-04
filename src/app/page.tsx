@@ -56,7 +56,7 @@ const AppearanceHeaderText = React.memo(function AppearanceHeaderText() {
     return () => clearInterval(interval);
   }, []);
 
-  return <span>{appearance.instanceName}</span>;
+  return <span>{appearance?.instanceName || 'Instance'}</span>;
 });
 
 /**
@@ -101,7 +101,7 @@ const AppearanceHeaderMessage = React.memo(function AppearanceHeaderMessage() {
   }, []);
 
   // Show header message if it exists and is not null
-  if (!appearance.headerText) {
+  if (!appearance?.headerText) {
     return null;
   }
 

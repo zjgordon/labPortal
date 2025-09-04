@@ -3,16 +3,10 @@ import type { Config } from 'jest';
 const config: Config = {
   testEnvironment: 'jsdom',
   transform: {
-    '^.+\\.(ts|tsx)$': [
-      'ts-jest',
-      {
-        tsconfig: 'tsconfig.json',
-        useESM: false,
-      },
-    ],
+    '^.+\\.(ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
     '^.+\\.(js|jsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testMatch: ['<rootDir>/**/__tests__/**/*.test.(ts|tsx)'],
   moduleNameMapper: {
@@ -27,9 +21,15 @@ const config: Config = {
   coverageDirectory: 'coverage',
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
   transformIgnorePatterns: [
-    '/node_modules/(?!(.*\\.mjs$|@testing-library|@babel|next-auth|jose|openid-client))',
+    '/node_modules/(?!(.*\\.mjs$|@testing-library|@babel|next-auth|jose|openid-client|@panva))',
   ],
   setupFiles: ['<rootDir>/jest.polyfills.js'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  globals: {
+    'ts-jest': {
+      useESM: false,
+    },
+  },
 };
 
 export default config;

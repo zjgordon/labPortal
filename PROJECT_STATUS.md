@@ -14,6 +14,33 @@ This pre-release version introduces significant enhancements to the Lab Portal, 
 
 All urgent issues have been successfully resolved! The Lab Portal is now fully functional with all core features working properly.
 
+## 🧪 Tests
+
+**Test Suite Status**:
+
+- **Total Tests**: 183
+- **Passing**: 130 (71%)
+- **Failing**: 53 (29%)
+- **Test Suites**: 18 total (9 passing, 9 failing)
+
+**Coverage**: Test coverage information available in `coverage/` directory
+
+**Recent Improvements**:
+
+- ✅ Fixed Jest configuration for TypeScript and JSX parsing
+- ✅ Fixed Babel configuration for proper module transformation
+- ✅ Resolved React component mocking issues
+- ✅ Fixed async HTTP request mocking in probe utility tests
+- ✅ Fixed NextAuth authentication mocking
+- ✅ Improved global fetch mocking for API endpoints
+- ✅ Fixed appearance component null safety issues
+
+**Remaining Issues**:
+
+- Some HomePage tests still showing loading skeletons instead of content
+- Navigation tests expecting "Admin Access" text but finding "ADMIN" button
+- Error state tests expecting "No Lab Tools Available" but component showing cards
+
 ---
 
 ## ✅ Completed Tasks

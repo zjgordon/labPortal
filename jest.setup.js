@@ -1,4 +1,5 @@
-import '@testing-library/jest-dom';
+require('@testing-library/jest-dom');
+const React = require('react');
 
 // Set up test environment variables
 process.env.ADMIN_PASSWORD = 'test-admin-password';
@@ -26,7 +27,7 @@ jest.mock('next/image', () => ({
   __esModule: true,
   default: (props) => {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img {...props} />;
+    return require('react').createElement('img', props);
   },
 }));
 
@@ -64,8 +65,65 @@ jest.mock('next/server', () => ({
 
 // Prisma client is now mocked via tests/utils/prismaMock.ts
 
-// Mock global fetch
-global.fetch = jest.fn((url, options) => {
+// Mock global fetch - this will be overridden by test-specific mocks
+global.fetch = jest.fn().mockImplementation((url, options) => {
+  // Mock appearance API
+  if (url === '/api/public/appearance') {
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          data: {
+            instanceName: 'Test Instance',
+            headerText: 'Test Header Message',
+            theme: 'system',
+          },
+        }),
+    });
+  }
+
+  // Mock cards API - return mock cards by default
+  if (url === '/api/cards') {
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve([
+          {
+            id: '1',
+            title: 'Test Lab Tool 1',
+            description: 'A test lab tool for testing purposes',
+            url: 'http://localhost:8080',
+            iconPath: '/icons/test1.svg',
+            order: 1,
+            isEnabled: true,
+            group: 'Development',
+          },
+          {
+            id: '2',
+            title: 'Test Lab Tool 2',
+            description: 'Another test lab tool',
+            url: 'http://localhost:8081',
+            iconPath: '/icons/test2.svg',
+            order: 2,
+            isEnabled: true,
+            group: 'Development',
+          },
+          {
+            id: '3',
+            title: 'Production Tool',
+            description: 'A production tool for testing',
+            url: 'http://localhost:8082',
+            iconPath: '/icons/prod.svg',
+            order: 1,
+            isEnabled: true,
+            group: 'Production',
+          },
+        ]),
+    });
+  }
+
   console.warn(`Unhandled fetch to: ${url} with options:`, options);
   return Promise.resolve({
     ok: true,
