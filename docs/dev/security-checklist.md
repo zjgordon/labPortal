@@ -191,5 +191,5 @@ curl -X GET http://localhost:3000/api/hosts/host-id \
 
 - [HOSTS_API.md](../api/HOSTS_API.md) - Complete host management API documentation
 - [AGENT_ENDPOINT_HARDENING.md](../api/AGENT_ENDPOINT_HARDENING.md) - Security hardening guidelines
-- [API Headers](../api-headers.md) - Cache control and security headers
+- [API Headers](api-headers.md) - Cache control and security headers
 - [Fresh Clone Checklist](fresh-clone-checklist.md) - Secure setup procedures

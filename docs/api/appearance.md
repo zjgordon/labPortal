@@ -335,6 +335,6 @@ console.log(`Header: ${appearance.data.headerText}`);
 ## Related Documentation
 
 - [API Headers](../dev/api-headers.md) - Cache control and security headers
-- [Admin Authentication](../auth/README.md) - Admin route protection
-- [CSRF Protection](../auth/CSRF_PROTECTION.md) - Origin validation
+- [Admin Authentication](../../src/lib/auth/README.md) - Admin route protection
+- [CSRF Protection](../../src/lib/auth/CSRF_PROTECTION.md) - Origin validation
 - [Environment Configuration](../dev/fresh-clone-checklist.md) - Setup and configuration

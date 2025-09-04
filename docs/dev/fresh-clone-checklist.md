@@ -4,7 +4,7 @@ This checklist ensures a brand-new checkout of the Lab Portal project can boot c
 
 ## Prerequisites
 
-- **Node.js**: Version 20.x (see [.nvmrc](.nvmrc) if available)
+- **Node.js**: Version 20.x (see [.nvmrc](../../.nvmrc) if available)
 - **npm**: Version 8.x or higher
 - **Git**: For cloning the repository
 
@@ -143,7 +143,7 @@ After successful setup:
 
 If you encounter issues not covered in this checklist:
 
-- Check the [main documentation](docs/index.md)
-- Review [API documentation](docs/api/)
+- Check the [main documentation](../index.md)
+- Review [API documentation](../api/)
 - Open an issue in the GitHub repository
-- Check the [project status](PROJECT_STATUS.md) for known issues
+- Check the [project status](../../PROJECT_STATUS.md) for known issues
