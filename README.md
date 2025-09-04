@@ -62,6 +62,7 @@ labPortal/
 - **Host & Service Management** - Complete control plane for infrastructure management
 - **Icon Management** - Upload and manage custom icons for each tool
 - **Appearance Customization** - [Customize portal branding](docs/api/appearance.md) with instance names, header text, and themes
+- **Admin Dashboard** - Comprehensive admin interface with experimental features toggle
 - **Responsive Design** - Works perfectly on desktop, tablet, and mobile
 
 ### 🎨 Cyberpunk Aesthetic
@@ -82,6 +83,16 @@ labPortal/
 - **Guard Rails** - Enterprise-grade rate limiting and audit logging
 - **Origin/CSRF Protection** - Strict origin validation for state-changing operations
 - **Agent Separation** - Complete isolation between admin and agent endpoints
+
+### 🎛️ Admin Dashboard
+
+- **Card Management** - Create, edit, and organize lab tool cards
+- **Appearance Settings** - Customize portal branding and themes
+- **Experimental Features** - Toggle control plane features on/off
+- **Host Management** - Configure infrastructure hosts and agents
+- **Service Management** - Set up systemd services and permissions
+- **Action History** - View and monitor all control operations
+- **Real-time Updates** - Live status updates and notifications
 
 ### 🎮 Control Plane & Infrastructure
 
@@ -261,6 +272,7 @@ The Lab Portal uses environment variables for configuration. All required and op
 - **`ADMIN_CRON_SECRET`** - Secret for admin cron operations
 - **`APPEARANCE_INSTANCE_NAME`** - Custom instance name for the portal
 - **`APPEARANCE_HEADER_TEXT`** - Custom header text for the portal
+- **`ENABLE_CONTROL_PLANE`** - **Deprecated**: Use the "Experimental Features" toggle in the admin dashboard instead (default: false)
 
 For complete configuration details and examples, see [`.env.example`](env.example).
 
@@ -339,7 +351,7 @@ The portal includes a sophisticated status monitoring system:
 
 ## 🎮 Control Plane & Infrastructure (Experimental)
 
-**Note**: Control plane features are disabled by default until action testing is complete. Set `ENABLE_CONTROL_PLANE=true` in your environment to enable these features.
+**Note**: Control plane features are disabled by default until action testing is complete. Enable them via the **Experimental Features** toggle in the admin dashboard.
 
 ### Host Management
 

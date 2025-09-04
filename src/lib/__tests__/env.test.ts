@@ -30,7 +30,7 @@ const envSchema = z.object({
   ENABLE_CONTROL_PLANE: z
     .string()
     .transform((val) => val === 'true')
-    .default('false'),
+    .default('false'), // Deprecated: Use admin dashboard toggle instead
   READONLY_PUBLIC_TOKEN: z.string().default(''),
   ADMIN_CRON_SECRET: z.string().default(''),
   ADMIN_ALLOWED_ORIGINS: z.string().default(''),

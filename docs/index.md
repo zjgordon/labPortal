@@ -22,6 +22,10 @@ Lab Portal is a modern, cyberpunk-styled laboratory control panel and control pl
 - [Queue Endpoint Behavior](api/QUEUE_ENDPOINT_BEHAVIOR.md) - Action queue semantics and behavior
 - [Agent Endpoint Hardening](api/AGENT_ENDPOINT_HARDENING.md) - Security and hardening guidelines
 
+### 🎛️ Admin Interface
+
+- [Admin Dashboard](admin/ADMIN_DASHBOARD.md) - Complete admin interface guide
+
 ### 🤖 Agent System
 
 - [Agent Behavior](agent/AGENT_BEHAVIOR.md) - Agent behavior and configuration

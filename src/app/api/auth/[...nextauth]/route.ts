@@ -1,60 +1,65 @@
-import NextAuth from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { env } from '@/lib/env'
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { env } from '@/lib/env';
 
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      name: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        console.log("=== AUTHORIZE FUNCTION CALLED ===")
-        console.log("Credentials:", credentials)
-        
+        console.log('=== AUTHORIZE FUNCTION CALLED ===');
+        console.log('Credentials:', credentials);
+
         if (!credentials?.email || !credentials?.password) {
-          console.log("Missing credentials")
-          return null
+          console.log('Missing credentials');
+          return null;
         }
 
         // Check admin credentials
-        if (credentials.email === "admin@local" && credentials.password === env.ADMIN_PASSWORD) {
-          console.log("=== ADMIN LOGIN SUCCESSFUL ===")
+        if (
+          credentials.email === 'admin@local' &&
+          credentials.password === env.ADMIN_PASSWORD
+        ) {
+          console.log('=== ADMIN LOGIN SUCCESSFUL ===');
           return {
-            id: "admin",
-            name: "Admin",
-            email: "admin@local"
-          }
+            id: 'admin',
+            name: 'Admin',
+            email: 'admin@local',
+          };
         }
 
-        console.log("Invalid credentials")
-        return null
-      }
-    })
+        console.log('Invalid credentials');
+        return null;
+      },
+    }),
   ],
   session: {
-    strategy: "jwt"
+    strategy: 'jwt',
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.email = user.email ?? null
-        token.name = user.name ?? null
+        token.id = user.id;
+        token.email = user.email ?? null;
+        token.name = user.name ?? null;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id as string
-        session.user.email = token.email as string
-        session.user.name = token.name as string
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
       }
-      return session
-    }
-  }
-})
+      return session;
+    },
+  },
+};
 
-export { handler as GET, handler as POST }
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };

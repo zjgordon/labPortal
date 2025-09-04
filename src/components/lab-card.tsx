@@ -21,7 +21,7 @@ import {
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
-import { isControlPlaneEnabled } from '@/lib/control/control-plane';
+import { isControlPlaneEnabledSync } from '@/lib/control/control-plane';
 
 export interface LabCardProps {
   id: string;
@@ -369,7 +369,7 @@ function LabCardComponent({
   // Check if user is admin and has linked services
   const isAdmin = session?.user?.email === 'admin@local';
   const hasLinkedServices = services && services.length > 0;
-  const controlPlaneEnabled = isControlPlaneEnabled();
+  const controlPlaneEnabled = isControlPlaneEnabledSync();
 
   // Close control dropdown when clicking outside
   useEffect(() => {

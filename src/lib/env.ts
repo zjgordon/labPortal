@@ -37,9 +37,38 @@ const envSchema = z.object({
   APPEARANCE_HEADER_TEXT: z.string().default('Lab Portal'),
 });
 
-export const env = envSchema.parse(process.env);
+// Only parse environment variables on the server side
+// On the client side, return a safe default object
+export const env =
+  typeof window === 'undefined'
+    ? envSchema.parse(process.env)
+    : {
+        // Client-side defaults - these should never be used for sensitive operations
+        ADMIN_PASSWORD: '',
+        NEXTAUTH_SECRET: '',
+        NEXTAUTH_URL: '',
+        DATABASE_URL: '',
+        PUBLIC_BASE_URL: '',
+        NODE_ENV: 'development' as const,
+        STATUS_SWEEPER_ENABLED: true,
+        HOST_LOCAL_ID: 'local',
+        ALLOW_SYSTEMCTL: false,
+        UNIT_ALLOWLIST_REGEX: '^([a-z0-9@._-]+)\\.service$',
+        EXEC_TIMEOUT_MS: 60000,
+        ENABLE_CONTROL_PLANE: false,
+        READONLY_PUBLIC_TOKEN: '',
+        ADMIN_CRON_SECRET: '',
+        ADMIN_ALLOWED_ORIGINS: '',
+        APPEARANCE_INSTANCE_NAME: 'Lab Portal',
+        APPEARANCE_HEADER_TEXT: 'Lab Portal',
+      };
 
 export function validateEnv() {
+  // Only validate on server side
+  if (typeof window !== 'undefined') {
+    return true; // Skip validation on client side
+  }
+
   try {
     // Access env to trigger validation
     const _ = env;

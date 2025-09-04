@@ -144,10 +144,11 @@ model Action {
 }
 
 model Appearance {
-  id           Int      @id @default(1)
-  instanceName String   @default("Lab Portal")
-  headerText   String?  // short banner text shown in header center
-  showClock    Boolean  @default(false) // optional: for future; leave but unused
-  theme        String   @default("system") // future: "system" | "light" | "dark"
-  updatedAt    DateTime @updatedAt
+  id                Int      @id @default(1)
+  instanceName      String   @default("Lab Portal")
+  headerText        String?  // short banner text shown in header center
+  showClock         Boolean  @default(false) // optional: for future; leave but unused
+  theme             String   @default("system") // future: "system" | "light" | "dark"
+  controlPlaneEnabled Boolean @default(false) // enable/disable control plane features
+  updatedAt         DateTime @updatedAt
 }

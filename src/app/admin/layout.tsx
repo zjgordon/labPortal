@@ -15,7 +15,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
-import { isControlPlaneEnabled } from '@/lib/control/control-plane';
+import { useControlPlane } from '@/hooks/use-control-plane';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -25,6 +25,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const { enabled: controlPlaneEnabled, loading: controlPlaneLoading } =
+    useControlPlane();
 
   // Check if this is the login page
   const isLoginPage = pathname === '/admin/login';
@@ -63,8 +65,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' });
   };
-
-  const controlPlaneEnabled = isControlPlaneEnabled();
 
   return (
     <div className="min-h-screen bg-gray-50">
