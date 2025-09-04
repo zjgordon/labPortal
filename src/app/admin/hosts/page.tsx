@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { QRCodeComponent } from '@/components/qr-code';
 import {
   Loader2,
   Plus,
@@ -24,6 +25,8 @@ import {
   EyeOff,
   Download,
   Copy,
+  QrCode,
+  Terminal,
 } from 'lucide-react';
 
 interface Host {
@@ -65,6 +68,18 @@ export default function AdminHostsPage() {
   });
   const [showToken, setShowToken] = useState(false);
   const [rotating, setRotating] = useState(false);
+  const [showQrCode, setShowQrCode] = useState(false);
+  const [tarballAvailable, setTarballAvailable] = useState(false);
+  const [tarballInfo, setTarballInfo] = useState<{
+    tarballName?: string;
+    hasChecksum?: boolean;
+    checksumName?: string;
+  }>({});
+  const [checksumData, setChecksumData] = useState<{
+    filename?: string;
+    sha256?: string;
+    checksumFile?: string;
+  }>({});
   const { toast } = useToast();
 
   const fetchHosts = useCallback(async () => {
@@ -261,6 +276,61 @@ export default function AdminHostsPage() {
   const openAgentConfigDialog = (host: Host) => {
     setSelectedHost(host);
     setAgentConfigDialogOpen(true);
+    checkTarballAvailability();
+  };
+
+  const checkTarballAvailability = async () => {
+    try {
+      // Check if tarball exists in dist-artifacts
+      const response = await fetch('/api/public/tarball-check');
+      if (response.ok) {
+        const data = await response.json();
+        setTarballAvailable(data.available);
+        // Store additional tarball info for display
+        if (data.available) {
+          setTarballInfo({
+            tarballName: data.tarballName,
+            hasChecksum: data.hasChecksum,
+            checksumName: data.checksumName,
+          });
+
+          // If checksum is available, fetch the checksum data
+          if (data.hasChecksum) {
+            fetchChecksumData();
+          }
+        }
+      }
+    } catch (error) {
+      // If API doesn't exist, assume tarball is not available
+      setTarballAvailable(false);
+    }
+  };
+
+  const fetchChecksumData = async () => {
+    try {
+      const response = await fetch('/api/public/tarball-checksum');
+      if (response.ok) {
+        const data = await response.json();
+        setChecksumData({
+          filename: data.filename,
+          sha256: data.sha256,
+          checksumFile: data.checksumFile,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch checksum data:', error);
+    }
+  };
+
+  const generateQrData = (host: Host) => {
+    const portalUrl = window.location.origin;
+    const qrData = {
+      portal: portalUrl,
+      hostId: host.name,
+      token: host.agentToken,
+      installCommand: `curl -sSL ${portalUrl}/api/public/install-script | sudo bash -s -- --host-id ${host.name} --portal ${portalUrl} --token ${host.agentToken}`,
+    };
+    return JSON.stringify(qrData);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -530,6 +600,265 @@ export default function AdminHostsPage() {
           <div className="space-y-6">
             {selectedHost?.agentToken && (
               <>
+                {/* Download Tarball Section */}
+                <div>
+                  <Label className="text-base font-semibold">
+                    Download Agent Package
+                  </Label>
+                  <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                    {tarballAvailable ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600">
+                          Download the pre-built agent package:
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const downloadUrl = `${window.location.origin}/api/public/download-tarball`;
+                              window.open(downloadUrl, '_blank');
+                              toast({
+                                title: 'Download Started',
+                                description: 'Agent tarball download initiated',
+                              });
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Tarball
+                          </Button>
+                          {tarballInfo.hasChecksum && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const downloadUrl = `${window.location.origin}/api/public/download-checksum`;
+                                window.open(downloadUrl, '_blank');
+                                toast({
+                                  title: 'Download Started',
+                                  description:
+                                    'Checksum file download initiated',
+                                });
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download Checksum
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const downloadCommand = `wget ${window.location.origin}/api/public/download-tarball -O agent-labportal.tgz`;
+                              navigator.clipboard.writeText(downloadCommand);
+                              toast({
+                                title: 'Copied',
+                                description:
+                                  'Download command copied to clipboard',
+                              });
+                            }}
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy wget command
+                          </Button>
+                        </div>
+                        {tarballInfo.hasChecksum && checksumData.sha256 && (
+                          <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
+                            <p className="text-sm text-green-800 font-medium mb-2">
+                              ✅ SHA256 Checksum Available
+                            </p>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <code className="bg-green-100 px-2 py-1 rounded text-xs font-mono flex-1 break-all">
+                                  {checksumData.sha256}
+                                </code>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(
+                                      checksumData.sha256 || ''
+                                    );
+                                    toast({
+                                      title: 'Copied',
+                                      description:
+                                        'SHA256 checksum copied to clipboard',
+                                    });
+                                  }}
+                                  className="text-xs px-2 py-1 h-auto"
+                                >
+                                  <Copy className="h-3 w-3 mr-1" />
+                                  Copy
+                                </Button>
+                              </div>
+                              <p className="text-xs text-green-700">
+                                Verify integrity with:{' '}
+                                <code className="bg-green-100 px-1 rounded">
+                                  sha256sum -c {checksumData.checksumFile}
+                                </code>
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600">
+                          No pre-built tarball available. Build locally:
+                        </p>
+                        <div className="p-3 bg-yellow-50 rounded border border-yellow-200">
+                          <pre className="text-sm font-mono whitespace-pre-wrap">
+                            {`# Build agent package locally
+make agent-build
+make agent-package
+
+# This creates: dist-artifacts/agent-labportal-*.tgz`}
+                          </pre>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const buildCommand = `make agent-build && make agent-package`;
+                            navigator.clipboard.writeText(buildCommand);
+                            toast({
+                              title: 'Copied',
+                              description: 'Build command copied to clipboard',
+                            });
+                          }}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy build command
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* QR Code Section */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">
+                      Quick Setup QR Code
+                    </Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowQrCode(!showQrCode)}
+                    >
+                      <QrCode className="h-4 w-4 mr-2" />
+                      {showQrCode ? 'Hide' : 'Show'} QR Code
+                    </Button>
+                  </div>
+                  {showQrCode && selectedHost && (
+                    <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-center p-4 bg-white rounded border">
+                        <div className="text-center">
+                          <QRCodeComponent
+                            data={generateQrData(selectedHost)}
+                            size={128}
+                            className="mb-2"
+                          />
+                          <p className="text-xs text-gray-500">
+                            QR Code: {selectedHost.name}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Scan with mobile device
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 text-xs text-gray-600">
+                        <p>
+                          <strong>QR Data:</strong> Contains portal URL, host
+                          ID, and one-click install command
+                        </p>
+                        <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono break-all">
+                          {generateQrData(selectedHost)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* TUI and CLI Commands */}
+                <div>
+                  <Label className="text-base font-semibold">
+                    Installation Commands
+                  </Label>
+                  <div className="mt-2 space-y-4">
+                    {/* Interactive TUI Installation */}
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Terminal className="h-4 w-4 text-green-600" />
+                        <span className="font-medium text-green-800">
+                          Interactive Installation (Recommended)
+                        </span>
+                      </div>
+                      <pre className="text-sm font-mono whitespace-pre-wrap bg-white p-3 rounded border">
+                        {`# Download and run guided installer
+curl -sSL ${window.location.origin}/api/public/install-script | sudo bash
+
+# Or if you have the tarball:
+tar -xzf agent-labportal-*.tgz
+cd agent-labportal-*
+sudo ./packaging/install-guided.sh`}
+                      </pre>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => {
+                          const tuiCommand = `curl -sSL ${window.location.origin}/api/public/install-script | sudo bash`;
+                          navigator.clipboard.writeText(tuiCommand);
+                          toast({
+                            title: 'Copied',
+                            description:
+                              'Interactive install command copied to clipboard',
+                          });
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy TUI command
+                      </Button>
+                    </div>
+
+                    {/* Non-interactive CLI Installation */}
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Terminal className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium text-blue-800">
+                          Non-Interactive Installation
+                        </span>
+                      </div>
+                      <pre className="text-sm font-mono whitespace-pre-wrap bg-white p-3 rounded border">
+                        {`# One-line non-interactive installation
+curl -sSL ${window.location.origin}/api/public/install-script | sudo bash -s -- \\
+  --host-id ${selectedHost.name} \\
+  --portal ${window.location.origin} \\
+  --token ${selectedHost.agentToken} \\
+  --assume-yes`}
+                      </pre>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => {
+                          const cliCommand = `curl -sSL ${window.location.origin}/api/public/install-script | sudo bash -s -- --host-id ${selectedHost.name} --portal ${window.location.origin} --token ${selectedHost.agentToken} --assume-yes`;
+                          navigator.clipboard.writeText(cliCommand);
+                          toast({
+                            title: 'Copied',
+                            description:
+                              'Non-interactive install command copied to clipboard',
+                          });
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy CLI command
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* .env Configuration */}
                 <div>
                   <Label className="text-base font-semibold">

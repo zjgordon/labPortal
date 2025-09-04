@@ -128,6 +128,35 @@ Returns status history for a specific card.
 
 **Note:** Events are downsampled to a maximum of 500 points for efficient charting.
 
+### GET /api/public/tarball-checksum
+
+Returns the SHA256 checksum for the latest agent tarball. This endpoint is useful for verifying the integrity of downloaded agent packages.
+
+**Response:**
+
+```json
+{
+  "filename": "agent-labportal-1.0.0.tgz",
+  "sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+  "checksumFile": "agent-labportal-1.0.0.tgz.sha256"
+}
+```
+
+**Error Responses:**
+
+- `404`: No tarball or checksum available
+- `500`: Invalid checksum format or server error
+
+**Example Usage:**
+
+```bash
+# Get checksum information
+curl "http://localhost:3000/api/public/tarball-checksum"
+
+# Verify downloaded tarball
+sha256sum -c agent-labportal-1.0.0.tgz.sha256
+```
+
 ## Usage Examples
 
 ### cURL Examples

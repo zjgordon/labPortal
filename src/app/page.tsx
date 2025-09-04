@@ -383,21 +383,29 @@ const LabCardsGrid = React.memo(function LabCardsGrid() {
 
   if (cards.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Server className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-2">
-          No Lab Tools Available
-        </h3>
-        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-          There are currently no lab tools configured. Please check back later
-          or contact an administrator.
-        </p>
-        <Link href="/admin/login">
-          <Button variant="outline" size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Admin Access
-          </Button>
-        </Link>
+      <div className="text-center py-16">
+        <div className="max-w-md mx-auto">
+          <div className="w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-400/30 rounded-2xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
+            <Server className="w-10 h-10 text-emerald-400" />
+          </div>
+          <h3 className="text-2xl font-bold text-slate-100 mb-3 tracking-tight">
+            No Lab Tools Available
+          </h3>
+          <p className="text-slate-400 mb-8 leading-relaxed">
+            There are currently no lab tools configured. Please check back later
+            or contact an administrator.
+          </p>
+          <Link href="/admin/login">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 hover:border-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:shadow-[0_0_15px_rgba(52,211,153,0.5)]"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Admin Access
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }

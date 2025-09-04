@@ -1,7 +1,7 @@
 # Lab Portal Makefile
 # Provides convenient targets for development, building, and deployment
 
-.PHONY: help dev typecheck lint migrate seed smoke portal-build portal-start portal-stop agent-build agent-package agent-install agent-uninstall
+.PHONY: help dev typecheck lint migrate seed smoke portal-build portal-start portal-stop agent-build agent-package agent-sign agent-install agent-uninstall
 
 # Default target
 help:
@@ -23,6 +23,7 @@ help:
 	@echo "Agent:"
 	@echo "  agent-build    - Build agent TypeScript"
 	@echo "  agent-package  - Package agent as tgz to /dist-artifacts"
+	@echo "  agent-sign     - Sign agent tarball with GPG (optional)"
 	@echo "  agent-install  - Install agent on remote host (HOST=hostname)"
 	@echo "  agent-uninstall- Uninstall agent from remote host (HOST=hostname)"
 	@echo ""
@@ -100,10 +101,62 @@ agent-package:
 			--exclude=.git \
 			--exclude=*.log \
 			--exclude=.env \
+			--exclude=src \
+			--exclude=tsconfig.json \
+			--exclude=test-connection.js \
 			dist/ package.json README.md env.example packaging/ && \
 		echo "✅ Agent packaged to dist-artifacts/agent-labportal-$$VERSION.tgz"; \
+		echo "🔐 Generating SHA256 checksum..." && \
+		cd ../dist-artifacts && \
+		sha256sum agent-labportal-$$VERSION.tgz > agent-labportal-$$VERSION.tgz.sha256 && \
+		echo "✅ Checksum generated: agent-labportal-$$VERSION.tgz.sha256"; \
+		echo "📋 Package includes:"; \
+		echo "   - Compiled agent binaries (dist/)"; \
+		echo "   - Guided installer (packaging/install-guided.sh)"; \
+		echo "   - Configuration template (env.example)"; \
+		echo "   - Package metadata (package.json)"; \
+		echo "   - Documentation (README.md)"; \
+		echo "   - SHA256 checksum file (.sha256)"; \
+		echo ""; \
+		echo "🔍 To verify the tarball:"; \
+		echo "   sha256sum -c agent-labportal-$$VERSION.tgz.sha256"; \
 	else \
 		echo "❌ Agent directory not found"; \
+		exit 1; \
+	fi
+
+agent-sign:
+	@echo "🔐 Signing agent tarball with GPG..."
+	@if [ ! -d dist-artifacts ]; then \
+		echo "❌ dist-artifacts directory not found. Run 'make agent-package' first."; \
+		exit 1; \
+	fi
+	@if ! command -v gpg > /dev/null 2>&1; then \
+		echo "❌ GPG not found. Please install GPG to sign tarballs."; \
+		echo "   Ubuntu/Debian: sudo apt install gnupg"; \
+		echo "   CentOS/RHEL:   sudo yum install gnupg2"; \
+		echo "   macOS:         brew install gnupg"; \
+		exit 1; \
+	fi
+	@cd dist-artifacts && \
+	TARBALL=$$(ls agent-labportal-*.tgz 2>/dev/null | head -1) && \
+	if [ -z "$$TARBALL" ]; then \
+		echo "❌ No agent tarball found in dist-artifacts/"; \
+		echo "   Run 'make agent-package' first to create a tarball."; \
+		exit 1; \
+	fi && \
+	echo "📦 Signing tarball: $$TARBALL" && \
+	if gpg --detach-sign --armor "$$TARBALL"; then \
+		echo "✅ GPG signature created: $$TARBALL.asc"; \
+		echo "🔍 To verify the signature:"; \
+		echo "   gpg --verify $$TARBALL.asc"; \
+		echo ""; \
+		echo "📋 Files in dist-artifacts/:"; \
+		ls -la $$TARBALL*; \
+	else \
+		echo "❌ GPG signing failed"; \
+		echo "   Make sure you have a GPG key configured:"; \
+		echo "   gpg --list-secret-keys"; \
 		exit 1; \
 	fi
 
@@ -193,6 +246,9 @@ agent-build-help:
 
 agent-package-help:
 	@echo "📦 Package agent as compressed tar.gz to dist-artifacts/"
+
+agent-sign-help:
+	@echo "🔐 Sign agent tarball with GPG (requires GPG key configured)"
 
 agent-install-help:
 	@echo "📡 Install agent on remote host (requires HOST=hostname)"

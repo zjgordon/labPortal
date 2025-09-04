@@ -1,0 +1,41 @@
+name: Test Installer
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'agent/packaging/install-guided.sh'
+      - 'scripts/test-installer.sh'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'agent/packaging/install-guided.sh'
+      - 'scripts/test-installer.sh'
+
+jobs:
+  test-installer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Make test script executable
+        run: chmod +x scripts/test-installer.sh
+
+      - name: Run installer tests
+        run: ./scripts/test-installer.sh
+
+      - name: Test dry-run functionality
+        run: |
+          cd agent/packaging
+          chmod +x install-guided.sh
+          ./install-guided.sh --dry-run \
+            --host-id test-host \
+            --portal http://portal.local \
+            --token test-token-long-enough-to-pass-validation

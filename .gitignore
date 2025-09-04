@@ -91,6 +91,12 @@ jspm_packages/
 # output of 'npm pack'
 *.tgz
 
+# checksum files for agent tarballs
+*.sha256
+
+# GPG signature files for agent tarballs
+*.asc
+
 # Yarn Integrity file
 .yarn-integrity
 
