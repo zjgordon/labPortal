@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       instanceName: appearance.instanceName,
       headerText: appearance.headerText,
       theme: appearance.theme,
+      showClock: appearance.showClock,
     };
 
     return ResponseHelper.success(

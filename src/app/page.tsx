@@ -23,9 +23,11 @@ const AppearanceHeaderText = React.memo(function AppearanceHeaderText() {
   const [appearance, setAppearance] = useState<{
     instanceName: string;
     headerText: string | null;
+    showClock: boolean;
   }>({
     instanceName: 'Instance',
     headerText: null,
+    showClock: false,
   });
 
   useEffect(() => {
@@ -111,13 +113,38 @@ const AppearanceHeaderMessage = React.memo(function AppearanceHeaderMessage() {
 /**
  * Client-side time display component to avoid hydration errors
  * Renders time only after component mounts to prevent server/client mismatch
+ * Features glowing colon effect and cyberpunk theming
+ * Displays both UTC and Local time with labels
  */
 const TimeDisplay = React.memo(function TimeDisplay() {
-  const [time, setTime] = useState('');
+  const [utcTime, setUtcTime] = useState('');
+  const [localTime, setLocalTime] = useState('');
 
   useEffect(() => {
     const updateTime = () => {
-      setTime(new Date().toLocaleTimeString());
+      const now = new Date();
+
+      // UTC time
+      setUtcTime(
+        now.toLocaleTimeString('en-US', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          timeZone: 'UTC',
+        })
+      );
+
+      // Local time
+      setLocalTime(
+        now.toLocaleTimeString(undefined, {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        })
+      );
     };
 
     // Update immediately on mount
@@ -130,7 +157,110 @@ const TimeDisplay = React.memo(function TimeDisplay() {
     return () => clearInterval(interval);
   }, []);
 
-  return <span>{time}</span>;
+  // Split time to add glowing effect to colon
+  const formatTimeWithGlowingColon = (timeString: string) => {
+    const parts = timeString.split(':');
+    if (parts.length >= 2) {
+      return (
+        <>
+          <span className="text-slate-100 font-mono text-sm tracking-wider">
+            {parts[0]}
+          </span>
+          <span className="text-emerald-400 animate-pulse mx-1 font-mono text-sm">
+            :
+          </span>
+          <span className="text-slate-100 font-mono text-sm tracking-wider">
+            {parts[1]}
+          </span>
+          {parts[2] && (
+            <>
+              <span className="text-emerald-400 animate-pulse mx-1 font-mono text-sm">
+                :
+              </span>
+              <span className="text-slate-100 font-mono text-sm tracking-wider">
+                {parts[2]}
+              </span>
+            </>
+          )}
+        </>
+      );
+    }
+    return (
+      <span className="text-slate-100 font-mono text-sm tracking-wider">
+        {timeString}
+      </span>
+    );
+  };
+
+  return (
+    <div className="flex items-center space-x-4">
+      {/* UTC Time */}
+      <div className="flex items-center space-x-2">
+        <span className="text-slate-400 font-mono text-xs tracking-wider">
+          UTC:
+        </span>
+        {formatTimeWithGlowingColon(utcTime)}
+      </div>
+
+      {/* Separator */}
+      <div className="text-slate-600">|</div>
+
+      {/* Local Time */}
+      <div className="flex items-center space-x-2">
+        <span className="text-slate-400 font-mono text-xs tracking-wider">
+          Local:
+        </span>
+        {formatTimeWithGlowingColon(localTime)}
+      </div>
+    </div>
+  );
+});
+
+/**
+ * Conditional clock display component that shows/hides based on appearance settings
+ */
+const ConditionalClockDisplay = React.memo(function ConditionalClockDisplay() {
+  const [showClock, setShowClock] = useState(false);
+
+  useEffect(() => {
+    const fetchAppearance = async () => {
+      try {
+        const response = await fetch('/api/public/appearance', {
+          headers: {
+            Authorization: 'Bearer test-public-token',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setShowClock(data.data.showClock);
+        }
+      } catch (error) {
+        console.error('Failed to fetch appearance for clock:', error);
+      }
+    };
+
+    // Fetch on mount
+    fetchAppearance();
+
+    // Set up interval to refresh data every 5 seconds
+    const interval = setInterval(fetchAppearance, 5000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!showClock) {
+    return null;
+  }
+
+  return (
+    <div className="hidden md:flex items-center">
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 backdrop-blur-sm">
+        <TimeDisplay />
+      </div>
+    </div>
+  );
 });
 
 interface LabCardData {
@@ -360,7 +490,7 @@ const HomePage = React.memo(function HomePage() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
       {/* New Cyberpunk Header */}
-      <header className="border-b border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b border-slate-700/50 bg-slate-800/30 backdrop-blur-md">
         <div className="container mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             {/* Left: Logo & Title */}
@@ -383,41 +513,29 @@ const HomePage = React.memo(function HomePage() {
 
             {/* Center: Instance Name and Header Message */}
             <div className="flex-1 flex justify-center px-4">
-              <div className="max-w-md text-center">
-                <div className="space-y-1">
-                  {/* Instance Name - Larger, Top with category-style styling */}
+              <div className="flex items-center space-x-3 max-w-2xl">
+                {/* Instance Name - Badge Style */}
+                <div className="bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-400/30 rounded-lg px-4 py-2 backdrop-blur-sm flex-shrink-0">
                   <h2
-                    className="text-xl md:text-2xl font-bold text-slate-100 tracking-tight"
+                    className="text-lg md:text-xl font-bold text-slate-100 tracking-tight whitespace-nowrap"
                     aria-label="Portal instance name"
                   >
                     <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
                       <AppearanceHeaderText />
                     </span>
                   </h2>
-                  {/* Header Message - Smaller, Bottom, italicized with muted styling */}
-                  <div className="text-sm md:text-base text-slate-400 italic truncate">
-                    <AppearanceHeaderMessage />
-                  </div>
                 </div>
-                {/* Optional: Future clock implementation */}
-                <span className="text-xs text-slate-500 ml-2">
-                  {/* Clock component would go here when showClock is implemented */}
-                </span>
+
+                {/* Header Message - Muted and Compact */}
+                <div className="text-sm md:text-base text-slate-400 italic min-w-0 flex-1">
+                  <AppearanceHeaderMessage />
+                </div>
               </div>
             </div>
 
-            {/* Right: System Status */}
+            {/* Right: Time Display */}
             <div className="flex items-center space-x-4">
-              <div className="hidden md:flex items-center space-x-3 text-xs">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                  <span className="text-slate-400">SYSTEM</span>
-                </div>
-                <div className="text-slate-600">|</div>
-                <div className="text-slate-400">
-                  <TimeDisplay />
-                </div>
-              </div>
+              <ConditionalClockDisplay />
               <Link href="/admin/login">
                 <Button
                   variant="outline"

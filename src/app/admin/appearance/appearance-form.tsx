@@ -1,29 +1,31 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
-import { Info } from 'lucide-react'
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Info } from 'lucide-react';
 
 interface AppearanceData {
-  instanceName: string
-  headerText: string | null
-  theme: string
+  instanceName: string;
+  headerText: string | null;
+  theme: string;
+  showClock: boolean;
 }
 
 export function AppearanceForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingData, setIsLoadingData] = useState(true)
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [formData, setFormData] = useState<AppearanceData>({
     instanceName: 'Lab Portal',
     headerText: null,
-    theme: 'system'
-  })
-  const { toast } = useToast()
-  const router = useRouter()
+    theme: 'system',
+    showClock: true,
+  });
+  const { toast } = useToast();
+  const router = useRouter();
 
   // Load current appearance data on component mount
   useEffect(() => {
@@ -33,30 +35,31 @@ export function AppearanceForm() {
           method: 'GET',
           headers: {
             'x-api-key': 'smoke-test-key',
-          }
-        })
-        
+          },
+        });
+
         if (response.ok) {
-          const data = await response.json()
+          const data = await response.json();
           setFormData({
             instanceName: data.data.instanceName,
             headerText: data.data.headerText,
-            theme: data.data.theme
-          })
+            theme: data.data.theme,
+            showClock: data.data.showClock,
+          });
         }
       } catch (error) {
-        console.error('Failed to fetch current appearance:', error)
+        console.error('Failed to fetch current appearance:', error);
       } finally {
-        setIsLoadingData(false)
+        setIsLoadingData(false);
       }
-    }
+    };
 
-    fetchCurrentAppearance()
-  }, [])
+    fetchCurrentAppearance();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
       const response = await fetch('/api/admin/appearance', {
@@ -64,51 +67,54 @@ export function AppearanceForm() {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': 'smoke-test-key',
-          'Origin': window.location.origin,
+          Origin: window.location.origin,
         },
         body: JSON.stringify(formData),
-      })
+      });
 
       if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         try {
-          const errorData = await response.json()
-          errorMessage = errorData.error || errorData.message || errorMessage
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
         } catch (parseError) {
           // Ignore parse error, use default message
         }
-        throw new Error(errorMessage)
+        throw new Error(errorMessage);
       }
 
-      await response.json()
-      
+      await response.json();
+
       toast({
         title: 'Success',
         description: 'Appearance settings updated successfully',
-      })
+      });
 
       // Revalidate the layout by refreshing the page
-      router.refresh()
-      
+      router.refresh();
     } catch (error) {
-      console.error('Error updating appearance:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update appearance'
+      console.error('Error updating appearance:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to update appearance';
       toast({
         title: 'Error',
         description: errorMessage,
         variant: 'destructive',
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleInputChange = (field: keyof AppearanceData, value: string | null) => {
-    setFormData(prev => ({
+  const handleInputChange = (
+    field: keyof AppearanceData,
+    value: string | null | boolean
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
-    }))
-  }
+      [field]: value,
+    }));
+  };
 
   if (isLoadingData) {
     return (
@@ -127,9 +133,11 @@ export function AppearanceForm() {
             <Input disabled placeholder="Loading..." />
           </div>
         </div>
-        <Button disabled className="w-full">Loading...</Button>
+        <Button disabled className="w-full">
+          Loading...
+        </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -158,7 +166,9 @@ export function AppearanceForm() {
           <Input
             id="headerText"
             value={formData.headerText || ''}
-            onChange={(e) => handleInputChange('headerText', e.target.value || null)}
+            onChange={(e) =>
+              handleInputChange('headerText', e.target.value || null)
+            }
             placeholder="Enter header message (optional)"
             maxLength={140}
             className="text-base"
@@ -189,11 +199,28 @@ export function AppearanceForm() {
             Theme preference (currently locked to system)
           </p>
         </div>
+
+        {/* Show Clock */}
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="showClock"
+              checked={formData.showClock}
+              onChange={(e) => handleInputChange('showClock', e.target.checked)}
+              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+            />
+            <Label htmlFor="showClock">Show Clock in Header</Label>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Display a live UTC and local time clock in the portal header
+          </p>
+        </div>
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full">
         {isLoading ? 'Saving...' : 'Save Changes'}
       </Button>
     </form>
-  )
+  );
 }

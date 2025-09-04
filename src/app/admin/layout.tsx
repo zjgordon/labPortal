@@ -13,6 +13,7 @@ import {
   Palette,
   LogOut,
   Activity,
+  HelpCircle,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useControlPlane } from '@/hooks/use-control-plane';
@@ -69,7 +70,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Header */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md shadow-sm border-b">
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
@@ -128,6 +129,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   >
                     <Palette className="h-4 w-4" />
                     <span>Appearance</span>
+                  </Button>
+                </Link>
+                <Link href="/admin/help">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center space-x-2"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                    <span>Help</span>
                   </Button>
                 </Link>
               </div>

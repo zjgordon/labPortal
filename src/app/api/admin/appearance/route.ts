@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
           instanceName: appearance.instanceName,
           headerText: appearance.headerText,
           theme: appearance.theme,
+          showClock: appearance.showClock,
         },
       },
       'admin'
@@ -60,6 +61,7 @@ export async function PUT(request: NextRequest) {
         instanceName: validatedData.instanceName,
         headerText: validatedData.headerText,
         theme: validatedData.theme || 'system',
+        showClock: validatedData.showClock ?? true,
         updatedAt: new Date(),
       },
       create: {
@@ -67,7 +69,7 @@ export async function PUT(request: NextRequest) {
         instanceName: validatedData.instanceName,
         headerText: validatedData.headerText,
         theme: validatedData.theme || 'system',
-        showClock: false,
+        showClock: validatedData.showClock ?? true,
       },
     });
 
