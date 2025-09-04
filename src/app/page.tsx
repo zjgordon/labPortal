@@ -361,7 +361,7 @@ const HomePage = React.memo(function HomePage() {
     <div className="min-h-screen bg-slate-900 text-slate-100">
       {/* New Cyberpunk Header */}
       <header className="border-b border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             {/* Left: Logo & Title */}
             <div className="flex items-center space-x-4">
@@ -385,15 +385,17 @@ const HomePage = React.memo(function HomePage() {
             <div className="flex-1 flex justify-center px-4">
               <div className="max-w-md text-center">
                 <div className="space-y-1">
-                  {/* Instance Name - Larger, Top */}
+                  {/* Instance Name - Larger, Top with category-style styling */}
                   <h2
-                    className="text-lg md:text-xl font-semibold text-slate-100 truncate"
+                    className="text-xl md:text-2xl font-bold text-slate-100 tracking-tight"
                     aria-label="Portal instance name"
                   >
-                    <AppearanceHeaderText />
+                    <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                      <AppearanceHeaderText />
+                    </span>
                   </h2>
-                  {/* Header Message - Smaller, Bottom */}
-                  <div className="text-sm md:text-base text-slate-300 truncate">
+                  {/* Header Message - Smaller, Bottom, italicized with muted styling */}
+                  <div className="text-sm md:text-base text-slate-400 italic truncate">
                     <AppearanceHeaderMessage />
                   </div>
                 </div>

@@ -74,6 +74,8 @@ export function ControlPlaneToggle({ className }: ControlPlaneToggleProps) {
 
       if (response.ok) {
         setEnabled(newEnabled);
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent('controlPlaneChanged'));
         toast({
           title: 'Control Plane Updated',
           description: `Control plane features are now ${newEnabled ? 'enabled' : 'disabled'}.`,

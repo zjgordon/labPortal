@@ -13,6 +13,7 @@ import {
   Square,
 } from 'lucide-react';
 import { ControlPlaneToggle } from '@/components/control-plane-toggle';
+import { useControlPlane } from '@/hooks/use-control-plane';
 
 interface DashboardStats {
   totalHosts: number;
@@ -26,6 +27,8 @@ interface DashboardStats {
 export default function AdminPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const { enabled: controlPlaneEnabled, loading: controlPlaneLoading } =
+    useControlPlane();
 
   useEffect(() => {
     fetchDashboardStats();
@@ -107,50 +110,10 @@ export default function AdminPage() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Total Cards - Always visible */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Hosts</CardTitle>
-            <Home className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalHosts || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.onlineHosts || 0} online
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Services
-            </CardTitle>
-            <Server className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.totalServices || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Managed services</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Actions</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalActions || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.pendingActions || 0} pending
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Portal Cards</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Cards</CardTitle>
             <Square className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -159,81 +122,97 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Status</CardTitle>
-            <Settings className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">Healthy</div>
-            <p className="text-xs text-muted-foreground">
-              All systems operational
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Conditional blocks based on control plane toggle */}
+        {!controlPlaneLoading && controlPlaneEnabled ? (
+          <>
+            {/* Total Hosts - Only visible when control plane enabled */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Hosts
+                </CardTitle>
+                <Home className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats?.totalHosts || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.onlineHosts || 0} online
+                </p>
+              </CardContent>
+            </Card>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Square className="h-5 w-5" />
-              Portal Cards
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">
-              Manage the lab tool cards displayed on the main portal, including
-              ordering and health monitoring.
-            </p>
-            <div className="space-y-2">
-              <Link href="/admin/cards">
-                <Button className="w-full">Manage Cards</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Total Services - Only visible when control plane enabled */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Services
+                </CardTitle>
+                <Server className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats?.totalServices || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Managed services
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Home className="h-5 w-5" />
-              Host Management
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">
-              Manage your infrastructure hosts, configure agent tokens, and
-              monitor host health.
-            </p>
-            <div className="space-y-2">
-              <Link href="/admin/hosts">
-                <Button className="w-full">Manage Hosts</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Total Actions - Only visible when control plane enabled */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Actions
+                </CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats?.totalActions || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.pendingActions || 0} pending
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            {/* Blank blocks to maintain visual consistency when control plane is disabled */}
+            <Card className="opacity-0 pointer-events-none">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium"></CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold"></div>
+                <p className="text-xs text-muted-foreground"></p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Server className="h-5 w-5" />
-              Service Management
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">
-              Configure managed services, set permissions, and trigger
-              start/stop/restart actions.
-            </p>
-            <div className="space-y-2">
-              <Link href="/admin/services">
-                <Button className="w-full">Manage Services</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="opacity-0 pointer-events-none">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium"></CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold"></div>
+                <p className="text-xs text-muted-foreground"></p>
+              </CardContent>
+            </Card>
+
+            <Card className="opacity-0 pointer-events-none">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium"></CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold"></div>
+                <p className="text-xs text-muted-foreground"></p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Getting Started */}

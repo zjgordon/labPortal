@@ -178,12 +178,11 @@ function LabCardComponent({
   }, [id, fetchHistory]); // Run when id or fetchHistory changes
 
   /**
-   * Handles card click events with intelligent URL handling
+   * Handles card click events with URL formatting
    * Features:
    * - URL validation and formatting
-   * - Popup blocking detection with fallbacks
-   * - User-friendly error messages
    * - Support for relative and absolute URLs
+   * - Opens in new tab using window.open
    */
   const handleCardClick = () => {
     if (url && url.trim() !== '') {
@@ -204,25 +203,8 @@ function LabCardComponent({
           targetUrl = `http://${targetUrl}`;
         }
 
-        // Try to open the URL in a new tab
-        const newWindow = window.open(
-          targetUrl,
-          '_blank',
-          'noopener,noreferrer'
-        );
-
-        if (!newWindow) {
-          // If popup is blocked, try alternative methods
-          try {
-            // Method 1: Try to navigate in the same window
-            window.location.href = targetUrl;
-          } catch (fallbackError) {
-            // Method 2: Show user-friendly error message
-            alert(
-              `Unable to open ${targetUrl}.\n\nThis might be due to:\n• Popup blocker enabled\n• Browser security settings\n• Network restrictions\n\nPlease try:\n1. Allowing popups for this site\n2. Right-clicking the card and selecting "Open in new tab"\n3. Copying the URL: ${targetUrl}`
-            );
-          }
-        }
+        // Open the URL in a new tab
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
       } catch (error) {
         console.error('Error opening URL:', error);
         alert(`Error opening URL: ${error}`);
