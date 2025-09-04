@@ -3011,3 +3011,213 @@ The Lab Portal agent framework and deployment infrastructure is now ready for:
 - **⚡ Automation**: Make-based workflows for common operations
 
 The agent framework, diagnostics, and deployment infrastructure represent a significant improvement in the Lab Portal's operational capabilities, completing the transformation into a production-ready system with comprehensive agent management, portal lifecycle operations, and diagnostic capabilities that enable off-site testing and professional deployment at scale.
+
+## 🧪 Session 8: Comprehensive Test Infrastructure and CI/CD Integration
+
+### 89. Jest TypeScript Configuration and Test Environment Setup
+
+- ✅ **Jest Configuration**: Created `jest.config.ts` with comprehensive TypeScript support and Next.js 14 compatibility
+- ✅ **Test Environment**: Configured Node.js test environment with proper module resolution and path mapping
+- ✅ **TypeScript Integration**: Full `ts-jest` integration with proper TypeScript compilation and type checking
+- ✅ **Module Resolution**: Configured `@/` path mapping and CSS module mocking for seamless imports
+- ✅ **Coverage Configuration**: Comprehensive coverage collection with proper file exclusions and reporting
+- ✅ **Polyfill Support**: Added `jest.polyfills.js` for Node.js environment compatibility with browser APIs
+
+#### Jest Configuration Features
+
+- **TypeScript Support**: Full TypeScript compilation with `ts-jest` transformer
+- **Path Mapping**: `@/` alias resolution for clean import statements
+- **CSS Mocking**: Style module mocking for component testing
+- **Coverage Collection**: Strategic coverage collection with test file exclusions
+- **Environment Setup**: Node.js environment with proper global setup
+- **Module Extensions**: Support for TypeScript, JavaScript, and JSON files
+
+### 90. Prisma Mocking Infrastructure and Database Testing
+
+- ✅ **Typed Prisma Mock**: Created `tests/utils/prismaMock.ts` with comprehensive Prisma model mocking
+- ✅ **Singleton Pattern**: Implemented `src/lib/prisma.ts` singleton for consistent database access
+- ✅ **Mock Integration**: Easy integration with `import { prismaMock }` in test files
+- ✅ **Type Safety**: Full TypeScript support with proper Prisma model typing
+- ✅ **Test Isolation**: Proper mock cleanup and isolation between tests
+
+#### Prisma Mocking Features
+
+- **Complete Model Coverage**: All Prisma models (Card, StatusEvent, Host, ManagedService, Action, Appearance) mocked
+- **Type Safety**: Full TypeScript support with proper model typing
+- **Easy Integration**: Simple import and usage pattern for test files
+- **Mock Management**: Proper mock setup and cleanup for test isolation
+- **Database Abstraction**: Clean separation between test and production database access
+
+### 91. Environment Variable Validation and Configuration Testing
+
+- ✅ **Environment Testing**: Created `src/lib/env.test.ts` with comprehensive environment variable validation
+- ✅ **Required Variables**: Tests for critical variables (ADMIN_PASSWORD, NEXTAUTH_SECRET, etc.)
+- ✅ **Default Values**: Validation of default values for optional configuration
+- ✅ **Parsing Logic**: Tests for complex parsing (ADMIN_ALLOWED_ORIGINS, regex patterns)
+- ✅ **Error Handling**: Proper error message validation and exception testing
+
+#### Environment Testing Features
+
+- **Variable Validation**: Tests for all required and optional environment variables
+- **Default Testing**: Validation of default values and fallback behavior
+- **Parsing Validation**: Complex parsing logic testing (CSV, regex, numeric values)
+- **Error Scenarios**: Missing variables, invalid formats, and error message validation
+- **Test Isolation**: Proper environment state management between tests
+
+### 92. Finite State Machine Testing and Business Logic Validation
+
+- ✅ **FSM Testing**: Created `src/lib/control/fsm.test.ts` with comprehensive state transition testing
+- ✅ **Valid Transitions**: Tests for all allowed state transitions (queued → running → succeeded/failed)
+- ✅ **Invalid Transitions**: Validation of rejected transitions with proper error handling
+- ✅ **Idempotent Operations**: Testing of idempotent state transitions and guard functions
+- ✅ **Error Handling**: Proper error object validation and exception testing
+
+#### FSM Testing Features
+
+- **State Transition Validation**: All valid and invalid transitions tested
+- **Guard Function Testing**: State transition guards and validation logic
+- **Error Handling**: Proper error object creation and message validation
+- **Business Logic**: Core business logic validation for action lifecycle
+- **Edge Cases**: Boundary conditions and error scenarios
+
+### 93. API Route Testing and Authentication Validation
+
+- ✅ **Queue Endpoint Testing**: Created `src/app/api/control/queue/__tests__/route.test.ts` with comprehensive API testing
+- ✅ **Report Endpoint Testing**: Created `src/app/api/control/report/__tests__/route.test.ts` with authentication testing
+- ✅ **Token Management Testing**: Created `src/app/api/hosts/[id]/token/__tests__/route.test.ts` with admin authentication
+- ✅ **Public API Testing**: Created `src/app/api/public/status/summary/__tests__/route.test.ts` with token validation
+- ✅ **Appearance API Testing**: Created appearance endpoint tests with validation and caching
+
+#### API Testing Features
+
+- **Authentication Testing**: Cookie rejection, Bearer token validation, and session management
+- **CSRF Protection**: Origin header validation and cross-origin request testing
+- **Response Validation**: Status codes, headers, and response body validation
+- **Error Handling**: Comprehensive error scenario testing and response validation
+- **Mock Integration**: Proper mocking of dependencies and external services
+
+### 94. Cache Control and Header Validation Testing
+
+- ✅ **Cache Header Testing**: Comprehensive testing of Cache-Control headers for different endpoint types
+- ✅ **Content-Type Validation**: Proper Content-Type header validation for all API responses
+- ✅ **Security Headers**: Vary headers and security header validation
+- ✅ **Public API Caching**: Strategic caching validation for public endpoints
+- ✅ **Admin API Security**: No-cache validation for admin endpoints
+
+#### Header Testing Features
+
+- **Cache Strategy Validation**: Different caching strategies for different endpoint types
+- **Content-Type Testing**: Proper JSON content type with charset specification
+- **Security Header Testing**: Vary headers and security header validation
+- **Performance Testing**: Cache effectiveness and header optimization validation
+- **Compliance Testing**: HTTP standard compliance and best practices
+
+### 95. Appearance Singleton Testing and Configuration Management
+
+- ✅ **Appearance Testing**: Created `src/app/api/admin/appearance/__tests__/route.test.ts` with comprehensive testing
+- ✅ **Public Appearance Testing**: Created `src/app/api/public/appearance/__tests__/route.test.ts` with caching validation
+- ✅ **Singleton Behavior**: Testing of appearance configuration singleton and caching behavior
+- ✅ **Database Fallback**: Environment variable fallback testing when database unavailable
+- ✅ **Validation Testing**: Zod schema validation and error handling
+
+#### Appearance Testing Features
+
+- **Singleton Testing**: Configuration singleton behavior and caching validation
+- **Database Integration**: Database persistence and retrieval testing
+- **Environment Fallback**: Fallback to environment variables when database unavailable
+- **Validation Testing**: Input validation and error handling
+- **Cache Behavior**: Caching strategy validation and cache invalidation
+
+### 96. Network Probe Testing and Timeout Validation
+
+- ✅ **Probe Testing**: Created `src/lib/status/__tests__/probe.test.ts` with comprehensive network testing
+- ✅ **HTTP Status Testing**: 2xx, 3xx, 4xx, 5xx status code handling validation
+- ✅ **Timeout Testing**: Network timeout and AbortController testing
+- ✅ **Error Handling**: Network error simulation and error message validation
+- ✅ **Latency Testing**: Response time measurement and timeout behavior
+
+#### Probe Testing Features
+
+- **Status Code Handling**: All HTTP status code ranges tested with proper behavior
+- **Timeout Simulation**: Network timeout and AbortController testing
+- **Error Scenarios**: Network errors, DNS failures, and connection issues
+- **Latency Measurement**: Response time validation and timeout behavior
+- **Mock Integration**: Node.js HTTP module mocking for deterministic testing
+
+### 97. Test Script Configuration and CI/CD Integration
+
+- ✅ **Package.json Scripts**: Updated test scripts with proper Jest configuration
+- ✅ **CI Integration**: Enhanced CI workflow with comprehensive test execution
+- ✅ **Coverage Reporting**: Proper coverage collection and reporting configuration
+- ✅ **Test Environment**: Consistent test environment across local and CI execution
+- ✅ **Quality Gates**: Test execution as quality gate in CI/CD pipeline
+
+#### Test Script Features
+
+- **Test Execution**: `npm test` for standard test execution
+- **Watch Mode**: `npm run test:watch` for development testing
+- **Coverage Collection**: `npm run test:cov` for coverage reporting
+- **CI Integration**: Automated test execution in CI/CD pipeline
+- **Quality Assurance**: Test results as deployment quality gate
+
+## 🎯 Enhanced Test Infrastructure Status
+
+The Lab Portal now provides **comprehensive test infrastructure and CI/CD integration** with:
+
+### Test Infrastructure
+
+- **Jest Configuration**: Full TypeScript support with Next.js 14 compatibility
+- **Prisma Mocking**: Typed database mocking with singleton pattern
+- **Environment Testing**: Comprehensive environment variable validation
+- **API Testing**: Complete API route testing with authentication validation
+- **Business Logic Testing**: FSM and core business logic validation
+
+### Test Coverage
+
+- **Unit Tests**: Comprehensive unit testing for all core functionality
+- **Integration Tests**: API endpoint testing with proper mocking
+- **Authentication Testing**: Security and authentication flow validation
+- **Error Handling**: Comprehensive error scenario testing
+- **Performance Testing**: Cache behavior and response time validation
+
+### CI/CD Integration
+
+- **Automated Testing**: Test execution in CI/CD pipeline
+- **Quality Gates**: Test results as deployment quality assurance
+- **Coverage Reporting**: Comprehensive test coverage collection
+- **Environment Consistency**: Consistent test environment across platforms
+- **Professional Standards**: Enterprise-grade testing infrastructure
+
+### Development Experience
+
+- **Type Safety**: Full TypeScript support throughout test infrastructure
+- **Easy Integration**: Simple patterns for test file creation and maintenance
+- **Mock Management**: Proper mock setup and cleanup for test isolation
+- **Documentation**: Clear testing patterns and best practices
+- **Maintainability**: Well-structured test infrastructure for ongoing development
+
+## 🚀 Ready for Comprehensive Testing and Quality Assurance
+
+The Lab Portal test infrastructure is now ready for:
+
+1. **Comprehensive Testing**: Full test coverage for all core functionality
+2. **CI/CD Integration**: Automated testing in deployment pipelines
+3. **Quality Assurance**: Test-driven development and quality gates
+4. **Team Collaboration**: Consistent testing standards across all contributors
+5. **Professional Development**: Enterprise-grade testing infrastructure
+6. **Maintenance Support**: Well-structured tests for ongoing development
+7. **Performance Validation**: Cache behavior and response time testing
+8. **Security Testing**: Authentication and authorization validation
+9. **Error Handling**: Comprehensive error scenario testing
+10. **Production Readiness**: Quality assurance for production deployment
+
+### Key Benefits Achieved
+
+- **🧪 Test Infrastructure**: Comprehensive Jest configuration with TypeScript support
+- **📊 Test Coverage**: Full coverage of core functionality and business logic
+- **🔧 CI/CD Integration**: Automated testing in deployment pipelines
+- **🛡️ Quality Assurance**: Test-driven development and quality gates
+- **📚 Documentation**: Clear testing patterns and best practices
+- **⚡ Development Experience**: Easy test creation and maintenance
+
+The comprehensive test infrastructure and CI/CD integration represent a significant improvement in the Lab Portal's quality assurance capabilities, completing the transformation into a production-ready system with comprehensive testing, quality gates, and professional development standards that ensure reliability and maintainability at scale.

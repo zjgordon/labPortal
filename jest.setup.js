@@ -1,5 +1,12 @@
 import '@testing-library/jest-dom';
 
+// Set up test environment variables
+process.env.ADMIN_PASSWORD = 'test-admin-password';
+process.env.NEXTAUTH_SECRET = 'test-nextauth-secret-key-for-testing-only';
+process.env.NEXTAUTH_URL = 'http://localhost:3000';
+process.env.DATABASE_URL = 'file:./test.db';
+process.env.PUBLIC_BASE_URL = 'http://localhost:3000';
+
 // Mock Next.js navigation
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -55,54 +62,7 @@ jest.mock('next/server', () => ({
   },
 }));
 
-// Mock Prisma client
-jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn().mockImplementation(() => ({
-    $connect: jest.fn(),
-    $disconnect: jest.fn(),
-    card: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      updateMany: jest.fn(),
-    },
-    cardStatus: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      upsert: jest.fn(),
-      delete: jest.fn(),
-    },
-    host: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-    service: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-    action: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-    appearance: {
-      findFirst: jest.fn(),
-      upsert: jest.fn(),
-    },
-  })),
-}));
+// Prisma client is now mocked via tests/utils/prismaMock.ts
 
 // Mock global fetch
 global.fetch = jest.fn((url, options) => {
